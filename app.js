@@ -4,7 +4,7 @@
  */
 
 // GANTI DENGAN URL WEB APP GAS ANDA SETELAH DI DEPLOY
-const GAS_URL = "URL_GOOGLE_APPS_SCRIPT_WEB_APP_ANDA_DISINI"; 
+const GAS_URL = "https://script.google.com/macros/s/AKfycbwUMJhziEcvZxTV4vdKsEP_5LPNDJ-AuasQ2bYUZVMDs0zJ7yB9d8maz39tlr6-BlgbLA/exec"; 
 
 // DOM Elements
 const form = document.getElementById('attendanceForm');
