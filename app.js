@@ -4,7 +4,7 @@
  */
 
 // GANTI DENGAN URL WEB APP GAS ANDA YANG AKTIF
-const GAS_URL = "https://script.google.com/macros/s/AKfycbwUMJhziEcvZxTV4vdKsEP_5LPNDJ-AuasQ2bYUZVMDs0zJ7yB9d8maz39tlr6-BlgbLA/exec"; 
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxrCD0a_A-U4iz9RWFNTgEwql9POXBlB0ahVMEGU21bPpah6i7boRn1kBH1LDLQNJmC1A/exec"; 
 
 let compressedBase64 = null;
 let loadedFieldsConfig = [];
