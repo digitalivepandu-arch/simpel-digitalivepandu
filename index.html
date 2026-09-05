@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SIMPEL v2.0 - Portal Presensi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gradient-to-br from-slate-900 to-slate-800 min-h-screen text-slate-100 font-sans antialiased flex items-center justify-center p-4">
+
+    <main class="glass-panel w-full max-w-md p-6 rounded-3xl shadow-2xl relative overflow-hidden transition-all duration-300">
+        
+        <header class="text-center mb-6">
+            <h1 class="text-2xl font-bold text-emerald-400 tracking-tight">SIMPEL v2.0</h1>
+            <p class="text-xs text-slate-400 mt-1">Sistem Presensi & Manajemen Perkuliahan</p>
+        </header>
+
+        <form id="attendanceForm" class="space-y-5">
+            
+            <div class="space-y-1">
+                <label for="npm" class="text-sm font-medium text-slate-300">NPM (10 Digit)</label>
+                <input type="text" id="npm" pattern="\d{10}" required maxlength="10" 
+                       class="w-full bg-slate-800/50 border border-slate-600 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                       placeholder="Contoh: 1012345678">
+            </div>
+
+            <div class="relative rounded-xl overflow-hidden bg-black aspect-[3/4] shadow-inner border border-slate-700 group">
+                <video id="videoElement" autoplay playsinline class="w-full h-full object-cover"></video>
+                <canvas id="canvasElement" class="hidden w-full h-full object-cover"></canvas>
+                
+                <div id="gpsLoading" class="absolute inset-0 bg-slate-900/80 flex flex-col items-center justify-center z-10">
+                    <div class="loader mb-2"></div>
+                    <span class="text-xs text-emerald-400 font-medium tracking-wide animate-pulse">Mengunci Lokasi GPS...</span>
+                </div>
+            </div>
+
+            <button type="submit" id="btnSubmit" disabled
+                    class="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-semibold py-3.5 px-4 rounded-xl transition-colors duration-200 shadow-lg shadow-emerald-500/30 flex justify-center items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                Ambil Foto & Hadir
+            </button>
+        </form>
+
+        <div id="alertBox" class="hidden mt-4 p-3 rounded-lg text-sm text-center font-medium transition-all duration-300"></div>
+
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
