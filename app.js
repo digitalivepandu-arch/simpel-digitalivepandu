@@ -7,7 +7,7 @@
 const GAS_URL = "https://script.google.com/macros/s/AKfycbxrCD0a_A-U4iz9RWFNTgEwql9POXBlB0ahVMEGU21bPpah6i7boRn1kBH1LDLQNJmC1A/exec"; 
 
 // DOM Elements
-const form = document.getElementById('attendanceForm');
+const form = document.getElementById('attendanceForm'); 
 const npmInput = document.getElementById('npm');
 const video = document.getElementById('videoElement');
 const canvas = document.getElementById('canvasElement');
