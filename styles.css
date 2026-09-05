@@ -1,25 +1,63 @@
-/* Custom CSS untuk SIMPEL v2.0 */
+/* Custom CSS untuk SIMPEL v2.0 - GitHub Pages */
 
-/* Mencegah highlight biru saat elemen disentuh di layar HP */
 * {
     -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box !important;
 }
 
-/* Glassmorphism UI (Ringan, kekinian) */
+body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    overflow-x: hidden !important;
+    background: radial-gradient(circle at top, #1e1b4b 0%, #0f172a 100%);
+}
+
+/* Mencegah zoom otomatis pada Safari iOS saat tap input */
+input[type="text"], input[type="email"], select, button {
+    font-size: 16px !important;
+}
+
+/* Glassmorphism UI */
 .glass-panel {
-    background: rgba(30, 41, 59, 0.6);
+    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Animasi Loader (Lebih ringan dari GIF/SVG kompleks) */
+.animate-scale-up { 
+    animation: scaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+    will-change: transform, opacity;
+}
+@keyframes scaleUp {
+    from { transform: scale(0.96); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.animate-slide-up {
+    animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    will-change: transform;
+}
+@keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+/* Scrollbar halus */
+::-webkit-scrollbar {
+    width: 5px;
+}
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 99px;
+}
+
+/* Animasi Loader */
 .loader {
     width: 24px;
     height: 24px;
-    border: 3px solid rgba(16, 185, 129, 0.3);
+    border: 3px solid rgba(79, 70, 229, 0.3);
     border-radius: 50%;
-    border-top-color: #10b981;
+    border-top-color: #4f46e5;
     animation: spin 1s ease-in-out infinite;
 }
 
@@ -27,7 +65,7 @@
     to { transform: rotate(360deg); }
 }
 
-/* Transisi kemunculan notifikasi (Smooth UX) */
+/* Transisi kemunculan notifikasi */
 .fade-in {
     animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
