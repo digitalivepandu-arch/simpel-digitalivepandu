@@ -188,9 +188,24 @@ function openDirectCameraWindow() {
 
 // --- LOAD STRUKTUR FORM DINAMIS DARI GAS ---
 async function loadDynamicForm() {
+    const container = document.getElementById('dynamicFormContainer');
+    
+    // 1. Cek apakah ada cache konfigurasi tersimpan di browser agar langsung tampil instan
+    const cachedConfig = localStorage.getItem('simpel_form_config_cache');
+    if (cachedConfig) {
+        try {
+            loadedFieldsConfig = JSON.parse(cachedConfig);
+            renderFormFields(loadedFieldsConfig);
+        } catch (e) {
+            console.warn("Gagal parse cache form:", e);
+        }
+    }
+
     try {
-        // Ambil status form terlebih dahulu lewat fetch GET parameter
-        const statusRes = await fetch(GAS_URL + "?action=getFormStatus").then(res => res.json()).catch(() => ({ status: 'BUKA' }));
+        // 2. Cek status form terlebih dahulu secara paralel atau cepat
+        const statusRes = await fetch(GAS_URL + "?action=getFormStatus")
+            .then(res => res.json())
+            .catch(() => ({ status: 'BUKA' }));
         
         if (statusRes && statusRes.status === 'TUTUP') {
             document.getElementById('attendanceForm').innerHTML = `
@@ -204,18 +219,22 @@ async function loadDynamicForm() {
             return;
         }
 
-        // Ambil konfigurasi form dinamis
+        // 3. Ambil konfigurasi form terbaru dari Google Apps Script
         const configRes = await fetch(GAS_URL + "?action=getFormConfiguration").then(res => res.json());
         
         if (configRes && configRes.status === 'success' && configRes.fields && configRes.fields.length > 0) {
             loadedFieldsConfig = configRes.fields;
-            renderFormFields(configRes.fields);
-        } else {
-            document.getElementById('dynamicFormContainer').innerHTML = '<p class="text-rose-500 text-center text-xs font-semibold py-4">Gagal memuat struktur form.</p>';
+            // Simpan ke localStorage untuk kunjungan berikutnya agar instan
+            localStorage.setItem('simpel_form_config_cache', JSON.stringify(loadedFieldsConfig));
+            renderFormFields(loadedFieldsConfig);
+        } else if (!cachedConfig) {
+            container.innerHTML = '<p class="text-rose-500 text-center text-xs font-semibold py-4">Gagal memuat struktur form.</p>';
         }
     } catch (e) {
         console.error(e);
-        document.getElementById('dynamicFormContainer').innerHTML = '<p class="text-rose-500 text-center text-xs font-semibold py-4">Gagal terhubung ke server Google.</p>';
+        if (!cachedConfig) {
+            container.innerHTML = '<p class="text-rose-500 text-center text-xs font-semibold py-4">Gagal terhubung ke server Google.</p>';
+        }
     }
 }
 
