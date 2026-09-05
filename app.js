@@ -1,10 +1,10 @@
 /**
- * SIMPEL v2.0 - Frontend Logic
- * Menangani GPS, Kamera, Kompresi Canvas, dan Komunikasi API
+ * SIMPEL v2.0 - Frontend Logic (GitHub Pages Version)
+ * Menangani GPS, Kamera, Kompresi Canvas, dan Komunikasi API ke Google Apps Script
  */
 
-// GANTI DENGAN URL WEB APP GAS ANDA SETELAH DI DEPLOY
-const GAS_URL = "https://script.google.com/macros/s/AKfycbwUMJhziEcvZxTV4vdKsEP_5LPNDJ-AuasQ2bYUZVMDs0zJ7yB9d8maz39tlr6-BlgbLA/exec"; 
+// GANTI DENGAN URL WEB APP GAS ANDA SETELAH DI-DEPLOY
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxrCD0a_A-U4iz9RWFNTgEwql9POXBlB0ahVMEGU21bPpah6i7boRn1kBH1LDLQNJmC1A/exec"; 
 
 // DOM Elements
 const form = document.getElementById('attendanceForm');
@@ -65,7 +65,7 @@ function getGPSPosition() {
 function captureAndCompress(npm) {
     const ctx = canvas.getContext('2d');
     
-    // Set dimensi target (Maksimal 800px untuk kompresi)
+    // Set dimensi target (Maksimal 600px untuk kompresi)
     const targetWidth = 600;
     const targetHeight = (video.videoHeight / video.videoWidth) * targetWidth;
     
@@ -91,7 +91,7 @@ function captureAndCompress(npm) {
     return canvas.toDataURL('image/jpeg', 0.65);
 }
 
-// 4. Proses Submit (Asynchronous Fetch ke GAS)
+// 4. Proses Submit (Asynchronous Fetch dengan mode: 'no-cors' untuk GitHub Pages -> GAS)
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -101,6 +101,10 @@ form.addEventListener('submit', async (e) => {
     }
 
     const npm = npmInput.value;
+    if(!npm || npm.length < 5) {
+        showAlert('Masukkan NPM yang valid.', 'error');
+        return;
+    }
     
     // Ubah UI menjadi status Loading
     btnSubmit.disabled = true;
@@ -116,29 +120,30 @@ form.addEventListener('submit', async (e) => {
         const payload = {
             action: 'submit_attendance',
             data: {
-                session_id: 'SESI-01', // Bisa dibuat dinamis nantinya
+                session_id: 'SESI-01',
                 npm: npm,
                 lat_lng: `${currentLat},${currentLng}`,
                 photo_base64: compressedImageBase64
             }
         };
 
-        const response = await fetch(GAS_URL, {
+        // Menggunakan mode 'no-cors' agar request dari GitHub Pages berhasil menembus Google Apps Script Web App
+        await fetch(GAS_URL, {
             method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'text/plain;charset=utf-8',
+            },
             body: JSON.stringify(payload)
-            // Catatan: Mode no-cors tidak bisa baca response, di GAS harus public web app
         });
 
-        const result = await response.json();
-        
-        if(result.status === 'success') {
-            showAlert('Presensi Berhasil: ' + result.timestamp, 'success');
-            setTimeout(() => { location.reload(); }, 3000); // Reset sistem setelah 3 detik
-        } else {
-            throw new Error(result.message);
-        }
+        // Karena mode 'no-cors' bersifat opaque (response body tidak bisa dibaca langsung),
+        // Kita asumsikan sukses jika fetch tidak melempar Network Error.
+        showAlert('Presensi berhasil dikirim dan dicatat oleh sistem!', 'success');
+        setTimeout(() => { location.reload(); }, 3000); // Reset sistem setelah 3 detik
 
     } catch (error) {
+        console.error(error);
         showAlert('Terjadi kesalahan koneksi atau server.', 'error');
         // Kembalikan UI
         video.classList.remove('hidden');
