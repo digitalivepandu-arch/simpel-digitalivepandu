@@ -3,13 +3,11 @@
  * Menangani Form Dinamis, GPS, Kamera Watermark, Kompresi, dan Komunikasi API ke GAS
  */
 
-// GANTI DENGAN URL WEB APP GAS ANDA YANG AKTIF
-const GAS_URL = "https://script.google.com/macros/s/AKfycbwQkdIAQXiWgFB7yiQo6qjGl6O_xYg1WUQ_Uz1NRbNKScQUvdC33veEuInC7X9-74b3TA/exec"; 
-
 let compressedBase64 = null;
 let loadedFieldsConfig = [];
-// Mengambil GAS_URL dari localStorage, jika kosong gunakan default/fallback
-let GAS_URL = localStorage.getItem('custom_gas_url') || "URL_GAS_DEFAULT_ANDA_DISINI";
+
+// Mengambil GAS_URL dari localStorage, jika kosong gunakan URL web app default Anda
+let GAS_URL = localStorage.getItem('custom_gas_url') || "https://script.google.com/macros/s/AKfycbwQkdIAQXiWgFB7yiQo6qjGl6O_xYg1WUQ_Uz1NRbNKScQUvdC33veEuInC7X9-74b3TA/exec";
 
 // Fungsi untuk mengganti URL GAS baru dari dashboard (bisa dipicu lewat Input Text & Tombol Save)
 function updateGasUrl(newUrl) {
@@ -22,6 +20,7 @@ function updateGasUrl(newUrl) {
   alert('GAS URL berhasil diperbarui! Halaman akan dimuat ulang.');
   location.reload();
 }
+
 // Mendengarkan hasil foto dari window kamera pop-up direct
 window.addEventListener('message', function(event) {
     if (event.data && event.data.type === 'CAMERA_CAPTURED') {
