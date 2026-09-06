@@ -8,7 +8,20 @@ const GAS_URL = "https://script.google.com/macros/s/AKfycbwQkdIAQXiWgFB7yiQo6qjG
 
 let compressedBase64 = null;
 let loadedFieldsConfig = [];
+// Mengambil GAS_URL dari localStorage, jika kosong gunakan default/fallback
+let GAS_URL = localStorage.getItem('custom_gas_url') || "URL_GAS_DEFAULT_ANDA_DISINI";
 
+// Fungsi untuk mengganti URL GAS baru dari dashboard (bisa dipicu lewat Input Text & Tombol Save)
+function updateGasUrl(newUrl) {
+  if (!newUrl || !newUrl.startsWith('https://script.google.com')) {
+    alert('URL GAS tidak valid!');
+    return;
+  }
+  localStorage.setItem('custom_gas_url', newUrl.trim());
+  GAS_URL = newUrl.trim();
+  alert('GAS URL berhasil diperbarui! Halaman akan dimuat ulang.');
+  location.reload();
+}
 // Mendengarkan hasil foto dari window kamera pop-up direct
 window.addEventListener('message', function(event) {
     if (event.data && event.data.type === 'CAMERA_CAPTURED') {
