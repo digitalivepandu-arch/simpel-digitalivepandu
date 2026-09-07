@@ -7,7 +7,7 @@ let compressedBase64 = null;
 let loadedFieldsConfig = [];
 
 // Mengambil GAS_URL dari localStorage, jika kosong gunakan URL web app default Anda
-let GAS_URL = localStorage.getItem('custom_gas_url') || "https://script.google.com/macros/s/AKfycbylfyPOJnbcaGvPSwmP7ZgVE6Ugr6Obi-Sql1VokjLMeQ9s2MlCNf3AMOBGyUyS207J0Q/exec";
+let GAS_URL = localStorage.getItem('custom_gas_url') || "https://script.google.com/macros/s/AKfycbyc_myCNkETLyI5Tsfu1JwLySn62IUUdM-PMDJC4EHcG5bNdSin5Mk4fA5R6maE7X26RQ/exec";
 
 // Fungsi untuk mengganti URL GAS baru dari dashboard (bisa dipicu lewat Input Text & Tombol Save)
 function updateGasUrl(newUrl) {
