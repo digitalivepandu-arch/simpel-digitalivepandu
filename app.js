@@ -7,7 +7,7 @@ let compressedBase64 = null;
 let loadedFieldsConfig = [];
 
 // Menggunakan URL Web App Google Apps Script secara langsung
-let GAS_URL = "https://script.google.com/macros/s/AKfycbyJ3MJrjL6uYChYJ_8jynHKYaY7w49YsUpFWC33C2HzRKXbFa2yIHSxO5WG0K9ZVAr-Mw/exec";
+let GAS_URL = "https://script.google.com/macros/s/AKfycbyRdCL2QHku1OUxmSSsjiyPPVI042SYjbBfcXjUg9EQMQ3d2BtRCX0aETM2ZQmZZjI87w/exec";
 
 // Mendengarkan hasil foto dari window kamera pop-up direct
 window.addEventListener('message', function(event) {
