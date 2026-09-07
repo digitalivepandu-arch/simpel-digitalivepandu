@@ -7,7 +7,7 @@ let compressedBase64 = null;
 let loadedFieldsConfig = [];
 
 // Mengambil GAS_URL dari localStorage, jika kosong gunakan URL web app default Anda
-let GAS_URL = localStorage.getItem('custom_gas_url') || "https://script.google.com/macros/s/AKfycbwT5QHuYyA7FfYKajWd3-EnI7bg5zxl7KbzXIir0O9gR_dvUYZjHcDTnQsOGbSWcE0pzA/exec";
+let GAS_URL = localStorage.getItem('custom_gas_url') || "https://script.google.com/macros/s/AKfycbz5Uja598r89YlR7Bt1tdScHkcAOngqpE1Tq4vHelpg8GVeLTwa6Ed_76fASUhGkPYnxQ/exec";
 
 // Fungsi untuk mengganti URL GAS baru dari dashboard (bisa dipicu lewat Input Text & Tombol Save)
 function updateGasUrl(newUrl) {
@@ -220,14 +220,17 @@ async function loadDynamicForm() {
             .catch(() => ({ status: 'BUKA' }));
         
         if (statusRes && statusRes.status === 'TUTUP') {
-            document.getElementById('attendanceForm').innerHTML = `
-                <div class="py-12 px-4 text-center space-y-4">
-                    <div class="w-16 h-16 bg-amber-500/10 text-amber-600 rounded-3xl mx-auto flex items-center justify-center text-3xl border border-amber-200">🔒</div>
-                    <h2 class="text-lg font-extrabold text-slate-800">Presensi Telah Ditutup</h2>
-                    <p class="text-xs text-slate-600 bg-amber-50/80 border border-amber-200/70 p-4 rounded-2xl leading-relaxed">
-                        ${statusRes.message || 'Mohon maaf, pengisian form presensi perkuliahan saat ini sedang ditutup oleh admin.'}
-                    </p>
-                </div>`;
+            const attendanceFormEl = document.getElementById('attendanceForm');
+            if (attendanceFormEl) {
+                attendanceFormEl.innerHTML = `
+                    <div class="py-12 px-4 text-center space-y-4">
+                        <div class="w-16 h-16 bg-amber-500/10 text-amber-600 rounded-3xl mx-auto flex items-center justify-center text-3xl border border-amber-200">🔒</div>
+                        <h2 class="text-lg font-extrabold text-slate-800">Presensi Telah Ditutup</h2>
+                        <p class="text-xs text-slate-600 bg-amber-50/80 border border-amber-200/70 p-4 rounded-2xl leading-relaxed">
+                            ${statusRes.message || 'Mohon maaf, pengisian form presensi perkuliahan saat ini sedang ditutup oleh admin.'}
+                        </p>
+                    </div>`;
+            }
             return;
         }
 
@@ -239,12 +242,12 @@ async function loadDynamicForm() {
             // Simpan ke localStorage untuk kunjungan berikutnya agar instan
             localStorage.setItem('simpel_form_config_cache', JSON.stringify(loadedFieldsConfig));
             renderFormFields(loadedFieldsConfig);
-        } else if (!cachedConfig) {
+        } else if (!cachedConfig && container) {
             container.innerHTML = '<p class="text-rose-500 text-center text-xs font-semibold py-4">Gagal memuat struktur form.</p>';
         }
     } catch (e) {
         console.error(e);
-        if (!cachedConfig) {
+        if (!cachedConfig && container) {
             container.innerHTML = '<p class="text-rose-500 text-center text-xs font-semibold py-4">Gagal terhubung ke server Google.</p>';
         }
     }
@@ -253,6 +256,7 @@ async function loadDynamicForm() {
 // Render Elemen Form Dinamis ke DOM
 function renderFormFields(fields) {
     const container = document.getElementById('dynamicFormContainer');
+    if (!container) return;
     const filteredFields = fields.filter(f => f.name !== 'email' && f.name !== 'emailInput');
 
     container.innerHTML = filteredFields.map(f => {
@@ -511,7 +515,7 @@ async function handleFormSubmit(e) {
 
         showPopupModal(true, "Presensi Berhasil!", "Data presensi Anda berhasil disimpan dan email konfirmasi telah dijadwalkan terkirim.", emailInputVal);
         
-   // Reset Form State secara aman
+        // Reset Form State secara aman
         const formAbsensi = document.getElementById('formAbsensi');
         if (formAbsensi && typeof formAbsensi.reset === 'function') {
             formAbsensi.reset();
