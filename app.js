@@ -49,8 +49,10 @@ function initGeolocationPermission() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (pos) => {
-                document.getElementById('geoLat').value = pos.coords.latitude;
-                document.getElementById('geoLng').value = pos.coords.longitude;
+                const latEl = document.getElementById('geoLat');
+                const lngEl = document.getElementById('geoLng');
+                if(latEl) latEl.value = pos.coords.latitude;
+                if(lngEl) lngEl.value = pos.coords.longitude;
             },
             (err) => {
                 console.warn("Geolocation silent log:", err.message);
@@ -470,17 +472,22 @@ async function handleFormSubmit(e) {
     }
 
     const btn = document.getElementById('btnSubmit');
-    btn.disabled = true;
-    document.getElementById('btnText').textContent = "Mengirim Data...";
-    document.getElementById('btnSpinner').classList.remove('hidden');
+    if (btn) btn.disabled = true;
+    const btnText = document.getElementById('btnText');
+    if (btnText) btnText.textContent = "Mengirim Data...";
+    const btnSpinner = document.getElementById('btnSpinner');
+    if (btnSpinner) btnSpinner.classList.remove('hidden');
+
+    const latVal = document.getElementById('geoLat') ? document.getElementById('geoLat').value : '';
+    const lngVal = document.getElementById('geoLng') ? document.getElementById('geoLng').value : '';
 
     const payload = {
         userEmail: emailInputVal,
         email: emailInputVal,
         npm: npmVal,
         nama: namaVal,
-        lat: document.getElementById('geoLat').value,
-        lng: document.getElementById('geoLng').value,
+        lat: latVal,
+        lng: lngVal,
         fotoBase64: compressedBase64
     };
 
@@ -509,20 +516,21 @@ async function handleFormSubmit(e) {
             body: JSON.stringify(payload)
         });
 
-        btn.disabled = false;
-        document.getElementById('btnText').textContent = "Kirim Presensi Kehadiran";
-        document.getElementById('btnSpinner').classList.add('hidden');
+        if (btn) btn.disabled = false;
+        if (btnText) btnText.textContent = "Kirim Presensi Kehadiran";
+        if (btnSpinner) btnSpinner.classList.add('hidden');
 
         showPopupModal(true, "Presensi Berhasil!", "Data presensi Anda berhasil disimpan dan email konfirmasi telah dijadwalkan terkirim.", emailInputVal);
         
-        // Reset Form State secara aman
-        const formAbsensi = document.getElementById('formAbsensi');
-        if (formAbsensi && typeof formAbsensi.reset === 'function') {
-            formAbsensi.reset();
-        }
-        const attendanceForm = document.getElementById('attendanceForm');
-        if (attendanceForm && typeof attendanceForm.reset === 'function') {
-            attendanceForm.reset();
+        // Perbaikan BUG "Cannot read properties of null (reading 'reset')" 
+        // Melakukan reset Form State secara aman dan spesifik ke ID yang benar
+        try {
+            const formObj = document.getElementById('attendanceForm');
+            if (formObj && typeof formObj.reset === 'function') {
+                formObj.reset();
+            }
+        } catch (resetErr) {
+            console.warn("Peringatan: Gagal mereset input form", resetErr);
         }
         
         resetDynamicSelects();
@@ -534,9 +542,9 @@ async function handleFormSubmit(e) {
 
     } catch (err) {
         console.error(err);
-        btn.disabled = false;
-        document.getElementById('btnText').textContent = "Kirim Presensi Kehadiran";
-        document.getElementById('btnSpinner').classList.add('hidden');
+        if (btn) btn.disabled = false;
+        if (btnText) btnText.textContent = "Kirim Presensi Kehadiran";
+        if (btnSpinner) btnSpinner.classList.add('hidden');
         showPopupModal(false, "Terjadi Kesalahan", err.message || "Gagal terhubung ke server.");
     }
 }
