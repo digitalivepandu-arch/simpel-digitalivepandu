@@ -511,11 +511,21 @@ async function handleFormSubmit(e) {
 
         showPopupModal(true, "Presensi Berhasil!", "Data presensi Anda berhasil disimpan dan email konfirmasi telah dijadwalkan terkirim.", emailInputVal);
         
-       // Reset Form State
-        const formAbsensi = document.getElementById('formAbsensi') || document.getElementById('attendanceForm');
-        if (formAbsensi) formAbsensi.reset();
+   // Reset Form State secara aman
+        const formAbsensi = document.getElementById('formAbsensi');
+        if (formAbsensi && typeof formAbsensi.reset === 'function') {
+            formAbsensi.reset();
+        }
+        const attendanceForm = document.getElementById('attendanceForm');
+        if (attendanceForm && typeof attendanceForm.reset === 'function') {
+            attendanceForm.reset();
+        }
+        
         resetDynamicSelects();
-        document.getElementById('previewContainer').classList.add('hidden');
+        
+        const previewContainer = document.getElementById('previewContainer');
+        if (previewContainer) previewContainer.classList.add('hidden');
+        
         compressedBase64 = null;
 
     } catch (err) {
