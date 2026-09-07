@@ -511,8 +511,9 @@ async function handleFormSubmit(e) {
 
         showPopupModal(true, "Presensi Berhasil!", "Data presensi Anda berhasil disimpan dan email konfirmasi telah dijadwalkan terkirim.", emailInputVal);
         
-        // Reset Form State
-        document.getElementById('formAbsensi').reset();
+       // Reset Form State
+        const formAbsensi = document.getElementById('formAbsensi') || document.getElementById('attendanceForm');
+        if (formAbsensi) formAbsensi.reset();
         resetDynamicSelects();
         document.getElementById('previewContainer').classList.add('hidden');
         compressedBase64 = null;
