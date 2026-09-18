@@ -433,6 +433,7 @@ function showPopupModal(isSuccess, title, message, targetEmail) {
 function closePopupModal() {
     document.getElementById('modalAlert').classList.add('hidden');
 }
+
 // --- SUBMIT HANDLER KE BACKEND GAS (DENGAN TIMEOUT SAFETY) ---
 async function handleFormSubmit(e) {
     e.preventDefault();
@@ -513,43 +514,51 @@ async function handleFormSubmit(e) {
     }, 20000);
 
     try {
-        // Mengirim data menggunakan mode no-cors
+        // 1. Kirim data TANPA 'mode: no-cors' agar respons server bisa dibaca
         const response = await fetch(GAS_URL, {
             method: 'POST',
-            mode: 'no-cors',
             headers: {
+                // text/plain wajib digunakan untuk menghindari Preflight/CORS error di GAS
                 'Content-Type': 'text/plain;charset=utf-8'
             },
             body: JSON.stringify(payload)
         });
 
-        // 3. JIKA SUDAH TIMEOUT, ABAIKAN PROSES SUKSES YANG TERLAMBAT
+        // 2. JIKA SUDAH TIMEOUT, ABAIKAN PROSES BERIKUTNYA
         if (isTimeout) return; 
         clearTimeout(timer); // Hapus timer jika sukses sebelum 20 detik
         
         isAbsenSubmitting = false; // Buka kunci kembali
-
         if (btn) btn.disabled = false;
         if (btnText) btnText.textContent = "Kirim Presensi Kehadiran";
         if (btnSpinner) btnSpinner.classList.add('hidden');
 
-        showPopupModal(true, "Presensi Berhasil!", "Data presensi Anda berhasil disimpan dan email konfirmasi telah dijadwalkan terkirim.", emailInputVal);
-        
-        try {
-            const formObj = document.getElementById('attendanceForm');
-            if (formObj && typeof formObj.reset === 'function') {
-                formObj.reset();
+        // 3. PARSE (BACA) BALASAN ASLI DARI SERVER
+        const result = await response.json();
+
+        // 4. CEK APAKAH BENAR-BENAR SUKSES DISIMPAN KE SPREADSHEET
+        if (result.status === 'success') {
+            showPopupModal(true, "Presensi Berhasil!", result.message || "Data presensi Anda berhasil disimpan.", emailInputVal);
+            
+            // Bersihkan form hanya jika benar-benar sukses
+            try {
+                const formObj = document.getElementById('attendanceForm');
+                if (formObj && typeof formObj.reset === 'function') {
+                    formObj.reset();
+                }
+            } catch (resetErr) {
+                console.warn("Peringatan: Gagal mereset input form", resetErr);
             }
-        } catch (resetErr) {
-            console.warn("Peringatan: Gagal mereset input form", resetErr);
+            
+            resetDynamicSelects();
+            const previewContainer = document.getElementById('previewContainer');
+            if (previewContainer) previewContainer.classList.add('hidden');
+            compressedBase64 = null;
+
+        } else {
+            // Jika backend menolak (contoh: error validasi atau antrean LockService penuh)
+            showPopupModal(false, "Gagal Disimpan", result.message || "Ditolak oleh server.");
         }
-        
-        resetDynamicSelects();
-        
-        const previewContainer = document.getElementById('previewContainer');
-        if (previewContainer) previewContainer.classList.add('hidden');
-        
-        compressedBase64 = null;
 
     } catch (err) {
         if (isTimeout) return;
@@ -560,6 +569,7 @@ async function handleFormSubmit(e) {
         if (btn) btn.disabled = false;
         if (btnText) btnText.textContent = "Kirim Presensi Kehadiran";
         if (btnSpinner) btnSpinner.classList.add('hidden');
+        
         showPopupModal(false, "Terjadi Kesalahan", err.message || "Gagal terhubung ke server.");
     }
 }
