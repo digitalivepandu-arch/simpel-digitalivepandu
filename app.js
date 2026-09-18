@@ -8,7 +8,7 @@ let loadedFieldsConfig = [];
 
 // Menggunakan URL Web App Google Apps Script secara langsung
 let GAS_URL = "https://script.google.com/macros/s/AKfycbyRdCL2QHku1OUxmSSsjiyPPVI042SYjbBfcXjUg9EQMQ3d2BtRCX0aETM2ZQmZZjI87w/exec";
-
+let isAbsenSubmitting = false; // Pengunci Spam Click
 // Mendengarkan hasil foto dari window kamera pop-up direct
 window.addEventListener('message', function(event) {
     if (event.data && event.data.type === 'CAMERA_CAPTURED') {
@@ -433,10 +433,12 @@ function showPopupModal(isSuccess, title, message, targetEmail) {
 function closePopupModal() {
     document.getElementById('modalAlert').classList.add('hidden');
 }
-
-// --- SUBMIT HANDLER KE BACKEND GAS ---
+// --- SUBMIT HANDLER KE BACKEND GAS (DENGAN TIMEOUT SAFETY) ---
 async function handleFormSubmit(e) {
     e.preventDefault();
+
+    // 1. PENCEGAH SPAM CLICK: Jika masih proses, abaikan klik tambahan
+    if (isAbsenSubmitting) return; 
     
     const emailInputVal = document.getElementById('emailInput') ? document.getElementById('emailInput').value.trim() : '';
     const npmVal = document.getElementById('npm') ? document.getElementById('npm').value.trim() : '';
@@ -458,6 +460,9 @@ async function handleFormSubmit(e) {
         showPopupModal(false, "Foto Belum Ada", "Silakan unggah atau ambil foto bukti kehadiran.");
         return;
     }
+
+    // Kunci tombol agar tidak bisa diklik dua kali
+    isAbsenSubmitting = true;
 
     const btn = document.getElementById('btnSubmit');
     if (btn) btn.disabled = true;
@@ -493,8 +498,22 @@ async function handleFormSubmit(e) {
         });
     }
 
+    // 2. TIMEOUT SAFETY 20 DETIK
+    let isTimeout = false;
+    let timer = setTimeout(() => {
+        isTimeout = true;
+        isAbsenSubmitting = false; // Buka kunci agar mahasiswa bisa mencoba lagi
+        
+        if (btn) btn.disabled = false;
+        if (btnText) btnText.textContent = "Kirim Presensi Kehadiran";
+        if (btnSpinner) btnSpinner.classList.add('hidden');
+
+        // Gunakan fungsi popup modal bawaan Anda
+        showPopupModal(false, "Antrean Penuh / Koneksi Lambat", "Server sedang memproses antrean absensi mahasiswa lain. Jangan tutup halaman ini, silakan tekan tombol kirim kembali.");
+    }, 20000);
+
     try {
-        // Mengirim data menggunakan mode no-cors atau CORS fetch ke URL Web App GAS
+        // Mengirim data menggunakan mode no-cors
         const response = await fetch(GAS_URL, {
             method: 'POST',
             mode: 'no-cors',
@@ -504,14 +523,18 @@ async function handleFormSubmit(e) {
             body: JSON.stringify(payload)
         });
 
+        // 3. JIKA SUDAH TIMEOUT, ABAIKAN PROSES SUKSES YANG TERLAMBAT
+        if (isTimeout) return; 
+        clearTimeout(timer); // Hapus timer jika sukses sebelum 20 detik
+        
+        isAbsenSubmitting = false; // Buka kunci kembali
+
         if (btn) btn.disabled = false;
         if (btnText) btnText.textContent = "Kirim Presensi Kehadiran";
         if (btnSpinner) btnSpinner.classList.add('hidden');
 
         showPopupModal(true, "Presensi Berhasil!", "Data presensi Anda berhasil disimpan dan email konfirmasi telah dijadwalkan terkirim.", emailInputVal);
         
-        // Perbaikan BUG "Cannot read properties of null (reading 'reset')" 
-        // Melakukan reset Form State secara aman dan spesifik ke ID yang benar
         try {
             const formObj = document.getElementById('attendanceForm');
             if (formObj && typeof formObj.reset === 'function') {
@@ -529,6 +552,10 @@ async function handleFormSubmit(e) {
         compressedBase64 = null;
 
     } catch (err) {
+        if (isTimeout) return;
+        clearTimeout(timer);
+        isAbsenSubmitting = false; // Buka kunci
+
         console.error(err);
         if (btn) btn.disabled = false;
         if (btnText) btnText.textContent = "Kirim Presensi Kehadiran";
