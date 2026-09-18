@@ -476,6 +476,7 @@ async function handleFormSubmit(e) {
     const lngVal = document.getElementById('geoLng') ? document.getElementById('geoLng').value : '';
 
     const payload = {
+        apiKey: "SIMPEL-V2-SECRET-KEY-2026", // TAMBAHKAN INI (Kunci Rahasia Bebas)
         userEmail: emailInputVal,
         email: emailInputVal,
         npm: npmVal,
