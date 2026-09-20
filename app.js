@@ -1,7 +1,4 @@
-/**
- * SIMPEL v2.0 - Frontend Logic (GitHub Pages Version)
- * Menangani Form Dinamis, GPS, Kamera Watermark, Kompresi, dan Komunikasi API ke GAS
- */
+/**  * SIMPEL v2.0 - Frontend Logic (GitHub Pages Version) */
 
 let compressedBase64 = null;
 let loadedFieldsConfig = [];
