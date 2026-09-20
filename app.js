@@ -6,15 +6,6 @@ let loadedFieldsConfig = [];
 // Menggunakan URL Web App Google Apps Script secara langsung
 let GAS_URL = "https://script.google.com/macros/s/AKfycbyRdCL2QHku1OUxmSSsjiyPPVI042SYjbBfcXjUg9EQMQ3d2BtRCX0aETM2ZQmZZjI87w/exec";
 let isAbsenSubmitting = false; // Pengunci Spam Click
-// Mendengarkan hasil foto dari window kamera pop-up direct
-window.addEventListener('message', function(event) {
-    if (event.data && event.data.type === 'CAMERA_CAPTURED') {
-        compressedBase64 = event.data.base64;
-        document.getElementById('previewContainer').classList.remove('hidden');
-        document.getElementById('imagePreview').src = compressedBase64;
-        document.getElementById('sizeInfo').innerText = `Kamera Direct (Watermark Nama & Waktu Aktif)`;
-    }
-});
 
 window.addEventListener('load', () => {
     initGeolocationPermission();
@@ -46,143 +37,111 @@ function initGeolocationPermission() {
         );
     }
 }
+// --- SISTEM KAMERA DIRECT IN-PAGE (ANTI POP-UP BLOCKER) ---
+let videoStream = null;
+let useFrontCamera = true;
+let cameraTimer = null;
 
-// --- MEMBUKA KAMERA DIRECT POP-UP ---
-function openDirectCameraWindow() {
+function updateCameraClock() {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const clockEl = document.getElementById('kameraClock');
+    if(clockEl) clockEl.innerText = dateStr + ' ' + timeStr + ' WIB';
+}
+
+async function openDirectCameraWindow() {
     const namaInputElem = document.getElementById('nama');
-    const studentName = namaInputElem && namaInputElem.value.trim() !== '' 
-        ? namaInputElem.value.trim().toUpperCase() 
-        : 'MAHASISWA';
-
-    const cameraHtml = `
-        <!DOCTYPE html>
-        <html lang="id">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-            <title>Ambil Foto Presensi</title>
-            <script src="https://cdn.tailwindcss.com"></script>
-        </head>
-        <body class="bg-slate-950 text-white min-h-screen flex flex-col justify-between p-4 font-sans select-none">
-            <div class="flex justify-between items-center text-white pt-2 max-w-md mx-auto w-full">
-                <h3 class="font-bold text-sm tracking-wide">Kamera Presensi</h3>
-                <button onclick="window.close()" class="bg-white/10 hover:bg-white/20 rounded-full px-3 py-1 text-xs transition-all">✕ Batal</button>
-            </div>
-            
-            <div class="relative w-full max-w-md mx-auto my-auto rounded-3xl overflow-hidden bg-black aspect-[3/4] flex items-center justify-center border border-white/10 shadow-2xl">
-                <video id="v" autoplay playsinline class="w-full h-full object-cover"></video>
-                
-                <!-- OVERLAY WATERMARK NAMA & WAKTU REAL-TIME -->
-                <div id="timeOverlay" class="absolute bottom-3 left-3 right-3 bg-black/60 backdrop-blur-md p-3 rounded-2xl text-[10px] font-mono text-emerald-300 border border-emerald-500/30">
-                    <div class="font-bold text-white truncate mb-0.5 text-xs">👤 ${studentName}</div>
-                    <div class="text-emerald-400">📌 PRESENSI REALTIME</div>
-                    <div class="text-slate-300">🕒 <span id="clockDisplay">--:--:--</span></div>
-                </div>
-                
-                <canvas id="c" class="hidden"></canvas>
-            </div>
-            
-            <div class="w-full max-w-md mx-auto pb-4 flex justify-center items-center gap-6">
-                <button onclick="switchCam()" class="p-3 bg-white/10 text-white rounded-full text-lg active:scale-90 transition-all">🔄</button>
-                <button onclick="snap()" class="w-16 h-16 bg-white border-4 border-indigo-600 rounded-full shadow-lg active:scale-95 flex items-center justify-center transition-all">
-                    <span class="w-12 h-12 bg-indigo-600 rounded-full block"></span>
-                </button>
-            </div>
-
-            <script>
-                let stream = null;
-                let useFront = true;
-                let timerInterval = null;
-                const currentStudentName = "${studentName.replace(/"/g, '\\"').replace(/'/g, "\\'")}";
-
-                function updateClock() {
-                    const now = new Date();
-                    const dateStr = now.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                    const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                    document.getElementById('clockDisplay').innerText = dateStr + ' ' + timeStr + ' WIB';
-                }
-                
-                async function start() {
-                    if(stream) stream.getTracks().forEach(t => t.stop());
-                    try {
-                        stream = await navigator.mediaDevices.getUserMedia({
-                            video: { facingMode: useFront ? 'user' : 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
-                        });
-                        document.getElementById('v').srcObject = stream;
-                    } catch(e) {
-                        alert("Gagal membuka kamera: " + e.message + "\\nPastikan izin kamera diizinkan pada browser Anda.");
-                    }
-                }
-                
-                function switchCam() {
-                    useFront = !useFront;
-                    start();
-                }
-                
-                function snap() {
-                    const v = document.getElementById('v');
-                    const c = document.getElementById('c');
-                    const ctx = c.getContext('2d');
-                    
-                    c.width = v.videoWidth || 640;
-                    c.height = v.videoHeight || 480;
-                    
-                    ctx.drawImage(v, 0, 0, c.width, c.height);
-                    
-                    const now = new Date();
-                    const dateStr = now.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                    const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                    
-                    const line1 = "👤 " + currentStudentName;
-                    const line2 = "📌 PRESENSI: " + dateStr + " " + timeStr + " WIB";
-                    
-                    const padding = 16;
-                    const fontSize = Math.round(c.width * 0.035);
-                    ctx.font = "bold " + fontSize + "px sans-serif";
-                    
-                    const textWidth1 = ctx.measureText(line1).width;
-                    const textWidth2 = ctx.measureText(line2).width;
-                    const maxTextWidth = Math.max(textWidth1, textWidth2);
-                    
-                    const boxHeight = (fontSize * 2.5) + 20;
-                    const boxY = c.height - boxHeight - padding;
-                    
-                    ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
-                    ctx.fillRect(padding, boxY, maxTextWidth + 24, boxHeight);
-                    
-                    ctx.fillStyle = "#ffffff";
-                    ctx.fillText(line1, padding + 12, boxY + fontSize + 6);
-                    
-                    ctx.fillStyle = "#10b981";
-                    ctx.fillText(line2, padding + 12, boxY + (fontSize * 2) + 12);
-                    
-                    const b64 = c.toDataURL('image/jpeg', 0.65);
-                    
-                    if (window.opener) {
-                        window.opener.postMessage({ type: 'CAMERA_CAPTURED', base64: b64 }, '*');
-                    }
-                    if(stream) stream.getTracks().forEach(t => t.stop());
-                    if(timerInterval) clearInterval(timerInterval);
-                    window.close();
-                }
-                
-                window.onload = function() {
-                    start();
-                    updateClock();
-                    timerInterval = setInterval(updateClock, 1000);
-                };
-            <\/script>
-        </body>
-        </html>
-    `;
-
-    const win = window.open('', '_blank', 'width=500,height=700');
-    if (win) {
-        win.document.write(cameraHtml);
-        win.document.close();
-    } else {
-        alert("Pop-up diblokir oleh browser. Izinkan Pop-up untuk situs ini agar jendela kamera dapat terbuka.");
+    if (!namaInputElem || namaInputElem.value.trim() === '') {
+        showPopupModal(false, "Lengkapi Data", "Silakan isi 'Nama Lengkap' terlebih dahulu sebelum mengambil foto presensi.");
+        return;
     }
+
+    document.getElementById('watermarkNama').innerText = "👤 " + namaInputElem.value.trim().toUpperCase();
+    document.getElementById('cameraModal').classList.remove('hidden');
+    
+    startCameraStream();
+    updateCameraClock();
+    cameraTimer = setInterval(updateCameraClock, 1000);
+}
+
+async function startCameraStream() {
+    if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+    try {
+        videoStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: useFrontCamera ? 'user' : 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+        document.getElementById('kameraVideo').srcObject = videoStream;
+    } catch(e) {
+        closeCameraModal();
+        showPopupModal(false, "Kamera Ditolak", "Gagal mengakses kamera. Pastikan izin kamera telah diberikan pada browser Anda.\nError: " + e.message);
+    }
+}
+
+function switchCamera() {
+    useFrontCamera = !useFrontCamera;
+    startCameraStream();
+}
+
+function snapCamera() {
+    const v = document.getElementById('kameraVideo');
+    const c = document.getElementById('kameraCanvas');
+    const ctx = c.getContext('2d');
+    
+    c.width = v.videoWidth || 640;
+    c.height = v.videoHeight || 480;
+    
+    // Mirror canvas jika pakai kamera depan agar teks tidak terbalik
+    if (useFrontCamera) {
+        ctx.translate(c.width, 0);
+        ctx.scale(-1, 1);
+    }
+    ctx.drawImage(v, 0, 0, c.width, c.height);
+    
+    // Kembalikan orientasi canvas untuk menulis teks Watermark
+    if (useFrontCamera) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+    
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    
+    const namaMahasiswa = document.getElementById('nama').value.trim().toUpperCase();
+    const line1 = "👤 " + namaMahasiswa;
+    const line2 = "📌 PRESENSI: " + dateStr + " " + timeStr + " WIB";
+    
+    const padding = 16;
+    const fontSize = Math.round(c.width * 0.035);
+    ctx.font = "bold " + fontSize + "px sans-serif";
+    
+    const maxTextWidth = Math.max(ctx.measureText(line1).width, ctx.measureText(line2).width);
+    const boxHeight = (fontSize * 2.5) + 20;
+    const boxY = c.height - boxHeight - padding - 20; 
+    
+    ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+    ctx.beginPath();
+    ctx.roundRect(padding, boxY, maxTextWidth + 30, boxHeight, 10);
+    ctx.fill();
+    
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(line1, padding + 15, boxY + fontSize + 6);
+    ctx.fillStyle = "#10b981";
+    ctx.fillText(line2, padding + 15, boxY + (fontSize * 2) + 12);
+    
+    compressedBase64 = c.toDataURL('image/jpeg', 0.65);
+    
+    document.getElementById('previewContainer').classList.remove('hidden');
+    document.getElementById('imagePreview').src = compressedBase64;
+    document.getElementById('sizeInfo').innerText = `Kamera Direct (Watermark Aktif)`;
+    
+    closeCameraModal();
+}
+
+function closeCameraModal() {
+    if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+    if (cameraTimer) clearInterval(cameraTimer);
+    document.getElementById('cameraModal').classList.add('hidden');
 }
 
 // --- LOAD STRUKTUR FORM DINAMIS DARI GAS ---
