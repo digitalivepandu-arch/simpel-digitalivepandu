@@ -4,7 +4,7 @@ let compressedBase64 = null;
 let loadedFieldsConfig = [];
 
 // Menggunakan URL Web App Google Apps Script secara langsung
-let GAS_URL = "https://script.google.com/macros/s/AKfycbyx0GZLZ0PxlyO8B25UJDm2QWlhEo1ZhwKhyLVyVstevsMIKjbbKEIKMpRVSwhQZ-prVg/exec";
+let GAS_URL = "https://script.google.com/macros/s/AKfycbz-VoFR5cdY2WL5ZOmcYq-PrYr8cipRjZAT6-DdNUBWnM0n0qBMxXpNd8IaqasDYAU3Dg/exec";
 let isAbsenSubmitting = false; // Pengunci Spam Click
 
 window.addEventListener('load', () => {
