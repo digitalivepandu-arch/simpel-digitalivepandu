@@ -11,7 +11,11 @@ const GAS_URL = APP_CONFIG.GAS_URL || "https://script.google.com/macros/s/AKfycb
 const API_KEY = APP_CONFIG.API_KEY || "SIMPEL-V2-SECRET-KEY-2026";
 
 let isAbsenSubmitting = false; // Pengunci Spam Click
+
+// State Audio Terpisah (BGM & SFX)
 let isSfxEnabled = true;
+let isBgmActiveByAdmin = false;
+let isBgmUserAllowed = true;
 let audioCtx = null;
 
 // Helper sanitasi HTML untuk mencegah XSS pada render dinamis
@@ -25,11 +29,95 @@ function escapeHtml(str) {
         .replace(/'/g, '&#39;');
 }
 
-// --- EFEK SUARA INTERAKSI (WEB AUDIO API - BEBAN 0 KB) ---
+// --- SISTEM MUSIK LATAR DINAMIS (BGM DARI DASHBOARD ADMIN) ---
+function setupDynamicBgm(bgmEnabled, bgmUrl) {
+    const bgmPlayer = document.getElementById('bgmPlayer');
+    const bgmSource = document.getElementById('bgmSource');
+    const btnBgm = document.getElementById('btnToggleBgm');
+    if (!bgmPlayer || !bgmSource) return;
+
+    const cleanUrl = (bgmUrl || '').trim();
+    if (!bgmEnabled || !cleanUrl) {
+        isBgmActiveByAdmin = false;
+        bgmPlayer.pause();
+        bgmSource.src = '';
+        if (btnBgm) btnBgm.classList.add('hidden');
+        return;
+    }
+
+    isBgmActiveByAdmin = true;
+    bgmSource.src = cleanUrl;
+    bgmPlayer.volume = 0.20; // Volume lembut 20% agar SFX peringatan tetap jelas
+    bgmPlayer.load();
+
+    if (btnBgm) {
+        btnBgm.classList.remove('hidden');
+        updateBgmButtonVisual();
+    }
+
+    // Coba putar langsung; jika diblokir browser HP, putar otomatis pada sentuhan pertama
+    const tryPlayBgm = () => {
+        if (!isBgmActiveByAdmin || !isBgmUserAllowed) return;
+        const playPromise = bgmPlayer.play();
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                updateBgmButtonVisual();
+                removeGestureListeners();
+            }).catch(() => {
+                // Menunggu interaksi pertama pengguna (tap/ketik)
+            });
+        }
+    };
+
+    const removeGestureListeners = () => {
+        document.removeEventListener('pointerdown', tryPlayBgm);
+        document.removeEventListener('touchstart', tryPlayBgm);
+        document.removeEventListener('keydown', tryPlayBgm);
+    };
+
+    document.addEventListener('pointerdown', tryPlayBgm, { passive: true });
+    document.addEventListener('touchstart', tryPlayBgm, { passive: true });
+    document.addEventListener('keydown', tryPlayBgm, { passive: true });
+
+    tryPlayBgm();
+}
+
+function togglePresensiBgm() {
+    const bgmPlayer = document.getElementById('bgmPlayer');
+    if (!bgmPlayer || !isBgmActiveByAdmin) return;
+
+    isBgmUserAllowed = !isBgmUserAllowed;
+    if (isBgmUserAllowed) {
+        bgmPlayer.volume = 0.20;
+        bgmPlayer.play().catch(err => console.warn("Gagal memutar BGM:", err));
+    } else {
+        bgmPlayer.pause();
+    }
+    updateBgmButtonVisual();
+}
+
+function updateBgmButtonVisual() {
+    const btnBgm = document.getElementById('btnToggleBgm');
+    if (!btnBgm) return;
+    if (isBgmUserAllowed) {
+        btnBgm.textContent = '🎵';
+        btnBgm.classList.remove('opacity-50');
+        btnBgm.title = 'Matikan Musik Latar';
+    } else {
+        btnBgm.textContent = '🎵';
+        btnBgm.classList.add('opacity-50');
+        btnBgm.title = 'Putar Musik Latar';
+    }
+}
+
+// --- EFEK SUARA INTERAKSI (WEB AUDIO API - BEBAN 0 KB, TIDAK BENTROK DENGAN BGM) ---
 function togglePresensiSfx() {
     isSfxEnabled = !isSfxEnabled;
     const btn = document.getElementById('btnToggleSfx');
-    if (btn) btn.textContent = isSfxEnabled ? '🔊' : '🔇';
+    if (btn) {
+        btn.textContent = isSfxEnabled ? '🔊' : '🔇';
+        btn.classList.toggle('opacity-50', !isSfxEnabled);
+    }
 }
 
 function playPresensiSfx(type) {
@@ -47,7 +135,6 @@ function playPresensiSfx(type) {
         gain.connect(audioCtx.destination);
 
         if (type === 'shutter') {
-            // Efek klik kamera singkat
             osc.type = 'triangle';
             osc.frequency.setValueAtTime(900, now);
             osc.frequency.exponentialRampToValueAtTime(180, now + 0.08);
@@ -56,7 +143,6 @@ function playPresensiSfx(type) {
             osc.start(now);
             osc.stop(now + 0.09);
         } else if (type === 'success') {
-            // Nada konfirmasi dua tingkat (chime)
             osc.type = 'sine';
             osc.frequency.setValueAtTime(587.33, now);       // D5
             osc.frequency.setValueAtTime(880, now + 0.11);    // A5
@@ -65,7 +151,6 @@ function playPresensiSfx(type) {
             osc.start(now);
             osc.stop(now + 0.32);
         } else if (type === 'error') {
-            // Nada peringatan rendah
             osc.type = 'sawtooth';
             osc.frequency.setValueAtTime(220, now);
             osc.frequency.setValueAtTime(175, now + 0.12);
@@ -250,7 +335,7 @@ function closeCameraModal() {
     document.getElementById('cameraModal').classList.add('hidden');
 }
 
-// --- LOAD STRUKTUR FORM DINAMIS DARI GAS ---
+// --- LOAD STRUKTUR FORM & PENGATURAN BGM DINAMIS DARI GAS ---
 async function loadDynamicForm() {
     const container = document.getElementById('dynamicFormContainer');
     
@@ -266,10 +351,14 @@ async function loadDynamicForm() {
     }
 
     try {
-        // 2. Cek status form terlebih dahulu
+        // 2. Cek status form sekaligus pengaturan musik latar dari Dashboard Admin
         const statusRes = await fetch(GAS_URL + "?action=getFormStatus")
             .then(res => res.json())
-            .catch(() => ({ status: 'BUKA' }));
+            .catch(() => ({ status: 'BUKA', bgmEnabled: false, bgmUrl: '' }));
+
+        if (statusRes) {
+            setupDynamicBgm(Boolean(statusRes.bgmEnabled), statusRes.bgmUrl || APP_CONFIG.DEFAULT_BGM_URL);
+        }
         
         if (statusRes && statusRes.status === 'TUTUP') {
             const attendanceFormEl = document.getElementById('attendanceForm');

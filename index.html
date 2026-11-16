@@ -10,6 +10,11 @@
 </head>
 <body class="min-h-full w-full flex flex-col justify-center items-center p-2.5 sm:p-6 md:p-8 text-slate-800 antialiased selection:bg-indigo-500 selection:text-white">
 
+    <!-- AUDIO BACKGROUND MUSIC (DINAMIS DARI DASHBOARD ADMIN, HEMAT BANDWIDTH DENGAN preload="none") -->
+    <audio id="bgmPlayer" loop preload="none">
+        <source id="bgmSource" src="" type="audio/mpeg">
+    </audio>
+
     <!-- Container Utama Responsif Adaptif -->
     <div class="w-full max-w-md sm:max-w-xl md:max-w-2xl lg:max-w-3xl mx-auto rounded-3xl shadow-2xl shadow-indigo-950/50 overflow-hidden my-auto transition-all duration-300 glass-panel">
         
@@ -31,8 +36,14 @@
                 <div class="shrink-0 self-start sm:self-center flex items-center gap-2">
                     <div class="flex items-center space-x-2 text-xs bg-black/40 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-white/10 shadow-lg">
                         <svg class="w-4 h-4 text-indigo-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                        <span class="text-slate-200 truncate max-w-[160px] sm:max-w-[190px]">Akun: <strong id="badgeEmailDisplay" class="font-semibold text-white">Masukkan Email</strong></span>
+                        <span class="text-slate-200 truncate max-w-[150px] sm:max-w-[180px]">Akun: <strong id="badgeEmailDisplay" class="font-semibold text-white">Masukkan Email</strong></span>
                     </div>
+                    <!-- Tombol Kontrol Musik Latar (Muncul otomatis jika BGM diaktifkan dari Dashboard) -->
+                    <button type="button" id="btnToggleBgm" onclick="togglePresensiBgm()" title="Putar/Jeda Musik Latar"
+                        class="hidden bg-black/40 hover:bg-black/60 backdrop-blur-md p-2 rounded-2xl border border-white/10 shadow-lg text-sm transition-all">
+                        🎵
+                    </button>
+                    <!-- Tombol Kontrol Efek Suara (Shutter, Sukses, Error) -->
                     <button type="button" id="btnToggleSfx" onclick="togglePresensiSfx()" title="Aktifkan/Matikan Efek Suara"
                         class="bg-black/40 hover:bg-black/60 backdrop-blur-md p-2 rounded-2xl border border-white/10 shadow-lg text-sm transition-all">
                         🔊
