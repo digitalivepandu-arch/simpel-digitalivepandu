@@ -4,10 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mengarahkan ke Dashboard Admin...</title>
-    <meta http-equiv="refresh" content="0;url=https://script.google.com/macros/s/AKfycbz2Cb6nwViSsfXEB3n82ow91ro5cR5FO-VMibBfJHcpbPFWHXj9t1bUATbqA9wi6pzK8A/exec?page=dashboard">
+    <script src="config.js"></script>
+    <script>
+        const targetDashboardUrl = (window.SIMPEL_CONFIG && typeof window.SIMPEL_CONFIG.getPageUrl === 'function')
+            ? window.SIMPEL_CONFIG.getPageUrl('dashboard')
+            : "https://script.google.com/macros/s/AKfycbz2Cb6nwViSsfXEB3n82ow91ro5cR5FO-VMibBfJHcpbPFWHXj9t1bUATbqA9wi6pzK8A/exec?page=dashboard";
+
+        window.location.replace(targetDashboardUrl);
+    </script>
 </head>
-<body style="font-family: Arial, sans-serif; text-align: center; padding-top: 50px; background-color: #F4F7FE; color: #334155;">
-    <h3>Sedang mengarahkan ke Dashboard Admin Presensi...</h3>
-    <p>Jika Anda tidak dialihkan secara otomatis, silakan klik <a href="https://script.google.com/macros/s/AKfycbz2Cb6nwViSsfXEB3n82ow91ro5cR5FO-VMibBfJHcpbPFWHXj9t1bUATbqA9wi6pzK8A/exec?page=dashboard">tautan ini</a>.</p>
+<body style="font-family: Arial, sans-serif; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #F4F7FE; color: #334155;">
+    <h3 style="margin-bottom: 10px;">Sedang mengarahkan ke Dashboard Admin Presensi...</h3>
+    <p style="font-size: 14px; color: #64748b;">Harap tunggu sebentar...</p>
+    <p style="font-size: 12px; margin-top: 20px;">
+        Jika Anda tidak dialihkan secara otomatis, silakan klik <a id="manualDashboardLink" href="#" style="color: #2563eb; text-decoration: none; font-weight: bold;">tautan ini</a>.
+    </p>
+
+    <script>
+        document.getElementById('manualDashboardLink').href = targetDashboardUrl;
+    </script>
 </body>
 </html>

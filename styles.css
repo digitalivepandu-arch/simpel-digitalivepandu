@@ -1,6 +1,6 @@
 /* Custom CSS untuk SIMPEL v2.0 - GitHub Pages */
 
-{
+* {
     -webkit-tap-highlight-color: transparent;
     box-sizing: border-box !important;
 }
@@ -14,6 +14,11 @@ body {
 /* Mencegah zoom otomatis pada Safari iOS saat tap input */
 input[type="text"], input[type="email"], select, button {
     font-size: 16px !important;
+}
+
+/* Efek mirror alami untuk pratinjau kamera depan */
+.mirror-video {
+    transform: scaleX(-1);
 }
 
 /* Glassmorphism UI */

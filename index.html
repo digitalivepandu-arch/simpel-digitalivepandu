@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
-    <title>Presensi Perkuliahan - SIMPEL v1.0</title>
+    <title>Presensi Perkuliahan - SIMPEL v2.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
@@ -22,17 +22,21 @@
                 <div>
                     <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-indigo-200 text-[11px] font-bold mb-2.5 border border-white/10 shadow-inner">
                         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                        DigitalivePandu @2026
+                        DigitalivePandu @2026 • SIMPEL v2.0
                     </div>
                     <h1 class="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight leading-snug">Form Absensi Perkuliahan</h1>
-                    <p class="text-indigo-200/90 mt-1 text-xs sm:text-sm font-normal max-w-lg">Pastikan data yang diisi sesuai identitas, dan CUKUP ISI ABSENSI 1 KALI SAJA Tiap Pertemuan!! kartu mahasiswa resmi.</p>
+                    <p class="text-indigo-200/90 mt-1 text-xs sm:text-sm font-normal max-w-lg">Pastikan data yang diisi sesuai identitas pada kartu mahasiswa resmi, dan CUKUP ISI ABSENSI 1 KALI SAJA tiap pertemuan.</p>
                 </div>
 
-                <div class="shrink-0 self-start sm:self-center">
+                <div class="shrink-0 self-start sm:self-center flex items-center gap-2">
                     <div class="flex items-center space-x-2 text-xs bg-black/40 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-white/10 shadow-lg">
                         <svg class="w-4 h-4 text-indigo-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                        <span class="text-slate-200 truncate max-w-[180px] sm:max-w-[200px]">Akun: <strong id="badgeEmailDisplay" class="font-semibold text-white">Masukkan Email</strong></span>
+                        <span class="text-slate-200 truncate max-w-[160px] sm:max-w-[190px]">Akun: <strong id="badgeEmailDisplay" class="font-semibold text-white">Masukkan Email</strong></span>
                     </div>
+                    <button type="button" id="btnToggleSfx" onclick="togglePresensiSfx()" title="Aktifkan/Matikan Efek Suara"
+                        class="bg-black/40 hover:bg-black/60 backdrop-blur-md p-2 rounded-2xl border border-white/10 shadow-lg text-sm transition-all">
+                        🔊
+                    </button>
                 </div>
             </div>
         </div>
@@ -64,7 +68,7 @@
                 <div class="text-xs text-amber-900 bg-amber-50/90 border border-amber-200/80 p-4 rounded-2xl leading-relaxed flex gap-3 items-start shadow-sm">
                     <span class="text-lg shrink-0">💬</span>
                     <div>
-                        Khusus yang <strong class="font-bold">Izin / Sakit</strong>, konfirmasi dahulu ke <a href="https://wa.me/6285198638587" target="_blank" class="underline font-extrabold text-amber-950 hover:text-indigo-600 transition-colors">WhatsApp Pengajar</a> serta sertakan surat izin resmi.
+                        Khusus yang <strong class="font-bold">Izin / Sakit</strong>, konfirmasi dahulu ke <a href="https://wa.me/6285198638587" target="_blank" rel="noopener noreferrer" class="underline font-extrabold text-amber-950 hover:text-indigo-600 transition-colors">WhatsApp Pengajar</a> serta sertakan surat izin resmi.
                     </div>
                 </div>
             </div>
@@ -94,7 +98,7 @@
                 
                 <!-- Preview Foto Terpilih -->
                 <div id="previewContainer" class="hidden mt-3 p-3.5 bg-slate-50/80 rounded-2xl border border-slate-200 flex items-center space-x-3 transition-all animate-scale-up">
-                    <img id="imagePreview" src="" class="w-14 h-14 object-cover rounded-xl border border-slate-200 shrink-0 shadow-sm" />
+                    <img id="imagePreview" src="" alt="Pratinjau Foto Bukti" class="w-14 h-14 object-cover rounded-xl border border-slate-200 shrink-0 shadow-sm" />
                     <div class="text-xs overflow-hidden">
                         <p id="compressStatus" class="font-bold text-emerald-600 flex items-center gap-1">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
@@ -156,7 +160,7 @@
         </div>
         
         <div class="relative w-full h-full flex items-center justify-center overflow-hidden">
-            <video id="kameraVideo" autoplay playsinline class="w-full h-full object-cover"></video>
+            <video id="kameraVideo" autoplay playsinline class="w-full h-full object-cover mirror-video"></video>
             
             <!-- OVERLAY WATERMARK -->
             <div class="absolute bottom-24 left-4 right-4 bg-black/60 backdrop-blur-md p-3.5 rounded-2xl text-[10px] sm:text-xs font-mono text-emerald-300 border border-emerald-500/30">
@@ -169,13 +173,15 @@
         </div>
         
         <div class="absolute bottom-0 w-full p-6 flex justify-center items-center gap-8 bg-gradient-to-t from-black/90 to-transparent">
-            <button type="button" onclick="switchCamera()" class="p-4 bg-white/10 text-white rounded-full text-xl active:scale-90 transition-all backdrop-blur-md">🔄</button>
-            <button type="button" onclick="snapCamera()" class="w-20 h-20 bg-white border-4 border-indigo-600 rounded-full shadow-[0_0_20px_rgba(79,70,229,0.5)] active:scale-95 flex items-center justify-center transition-all">
+            <button type="button" onclick="switchCamera()" class="p-4 bg-white/10 text-white rounded-full text-xl active:scale-90 transition-all backdrop-blur-md" title="Ganti Kamera">🔄</button>
+            <button type="button" onclick="snapCamera()" class="w-20 h-20 bg-white border-4 border-indigo-600 rounded-full shadow-[0_0_20px_rgba(79,70,229,0.5)] active:scale-95 flex items-center justify-center transition-all" title="Ambil Foto">
                 <span class="w-16 h-16 bg-indigo-600 rounded-full block"></span>
             </button>
         </div>
     </div>
     
+    <!-- Muat config.js terlebih dahulu sebelum app.js -->
+    <script src="config.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

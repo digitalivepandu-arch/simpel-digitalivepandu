@@ -1,11 +1,83 @@
-/**  * SIMPEL v2.0 - Frontend Logic (GitHub Pages Version) */
+/**
+ * SIMPEL v2.0 - Frontend Logic Presensi (GitHub Pages Version)
+ */
 
 let compressedBase64 = null;
 let loadedFieldsConfig = [];
 
-// Menggunakan URL Web App Google Apps Script secara langsung
-let GAS_URL = "https://script.google.com/macros/s/AKfycbz2Cb6nwViSsfXEB3n82ow91ro5cR5FO-VMibBfJHcpbPFWHXj9t1bUATbqA9wi6pzK8A/exec";
+// Membaca konfigurasi terpusat dari config.js
+const APP_CONFIG = window.SIMPEL_CONFIG || {};
+const GAS_URL = APP_CONFIG.GAS_URL || "https://script.google.com/macros/s/AKfycbz2Cb6nwViSsfXEB3n82ow91ro5cR5FO-VMibBfJHcpbPFWHXj9t1bUATbqA9wi6pzK8A/exec";
+const API_KEY = APP_CONFIG.API_KEY || "SIMPEL-V2-SECRET-KEY-2026";
+
 let isAbsenSubmitting = false; // Pengunci Spam Click
+let isSfxEnabled = true;
+let audioCtx = null;
+
+// Helper sanitasi HTML untuk mencegah XSS pada render dinamis
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// --- EFEK SUARA INTERAKSI (WEB AUDIO API - BEBAN 0 KB) ---
+function togglePresensiSfx() {
+    isSfxEnabled = !isSfxEnabled;
+    const btn = document.getElementById('btnToggleSfx');
+    if (btn) btn.textContent = isSfxEnabled ? '🔊' : '🔇';
+}
+
+function playPresensiSfx(type) {
+    if (!isSfxEnabled) return;
+    try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+        if (!audioCtx) audioCtx = new AudioContextClass();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'shutter') {
+            // Efek klik kamera singkat
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(900, now);
+            osc.frequency.exponentialRampToValueAtTime(180, now + 0.08);
+            gain.gain.setValueAtTime(0.18, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+            osc.start(now);
+            osc.stop(now + 0.09);
+        } else if (type === 'success') {
+            // Nada konfirmasi dua tingkat (chime)
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(587.33, now);       // D5
+            osc.frequency.setValueAtTime(880, now + 0.11);    // A5
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+            osc.start(now);
+            osc.stop(now + 0.32);
+        } else if (type === 'error') {
+            // Nada peringatan rendah
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(220, now);
+            osc.frequency.setValueAtTime(175, now + 0.12);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+            osc.start(now);
+            osc.stop(now + 0.25);
+        }
+    } catch (e) {
+        // Abaikan jika browser membatasi AudioContext
+    }
+}
 
 window.addEventListener('load', () => {
     initGeolocationPermission();
@@ -27,8 +99,8 @@ function initGeolocationPermission() {
             (pos) => {
                 const latEl = document.getElementById('geoLat');
                 const lngEl = document.getElementById('geoLng');
-                if(latEl) latEl.value = pos.coords.latitude;
-                if(lngEl) lngEl.value = pos.coords.longitude;
+                if (latEl) latEl.value = pos.coords.latitude;
+                if (lngEl) lngEl.value = pos.coords.longitude;
             },
             (err) => {
                 console.warn("Geolocation silent log:", err.message);
@@ -37,6 +109,7 @@ function initGeolocationPermission() {
         );
     }
 }
+
 // --- SISTEM KAMERA DIRECT IN-PAGE (ANTI POP-UP BLOCKER) ---
 let videoStream = null;
 let useFrontCamera = true;
@@ -47,7 +120,7 @@ function updateCameraClock() {
     const dateStr = now.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
     const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const clockEl = document.getElementById('kameraClock');
-    if(clockEl) clockEl.innerText = dateStr + ' ' + timeStr + ' WIB';
+    if (clockEl) clockEl.innerText = dateStr + ' ' + timeStr + ' WIB';
 }
 
 async function openDirectCameraWindow() {
@@ -67,12 +140,21 @@ async function openDirectCameraWindow() {
 
 async function startCameraStream() {
     if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+    const videoEl = document.getElementById('kameraVideo');
+    if (videoEl) {
+        if (useFrontCamera) {
+            videoEl.classList.add('mirror-video');
+        } else {
+            videoEl.classList.remove('mirror-video');
+        }
+    }
+
     try {
         videoStream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: useFrontCamera ? 'user' : 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
         });
-        document.getElementById('kameraVideo').srcObject = videoStream;
-    } catch(e) {
+        if (videoEl) videoEl.srcObject = videoStream;
+    } catch (e) {
         closeCameraModal();
         showPopupModal(false, "Kamera Ditolak", "Gagal mengakses kamera. Pastikan izin kamera telah diberikan pada browser Anda.\nError: " + e.message);
     }
@@ -87,11 +169,30 @@ function snapCamera() {
     const v = document.getElementById('kameraVideo');
     const c = document.getElementById('kameraCanvas');
     const ctx = c.getContext('2d');
+
+    playPresensiSfx('shutter');
+
+    // Perkecil dimensi maksimal ke 800px agar pengiriman cepat & anti-timeout
+    const maxDimension = 800;
+    let width = v.videoWidth || 640;
+    let height = v.videoHeight || 480;
+
+    if (width > height) {
+        if (width > maxDimension) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+        }
+    } else {
+        if (height > maxDimension) {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+        }
+    }
+
+    c.width = width;
+    c.height = height;
     
-    c.width = v.videoWidth || 640;
-    c.height = v.videoHeight || 480;
-    
-    // Mirror canvas jika pakai kamera depan agar teks tidak terbalik
+    // Mirror canvas jika pakai kamera depan agar teks watermark tidak terbalik
     if (useFrontCamera) {
         ctx.translate(c.width, 0);
         ctx.scale(-1, 1);
@@ -111,29 +212,34 @@ function snapCamera() {
     const line1 = "👤 " + namaMahasiswa;
     const line2 = "📌 PRESENSI: " + dateStr + " " + timeStr + " WIB";
     
-    const padding = 16;
-    const fontSize = Math.round(c.width * 0.035);
+    const padding = 14;
+    const fontSize = Math.max(12, Math.round(c.width * 0.032));
     ctx.font = "bold " + fontSize + "px sans-serif";
     
     const maxTextWidth = Math.max(ctx.measureText(line1).width, ctx.measureText(line2).width);
-    const boxHeight = (fontSize * 2.5) + 20;
-    const boxY = c.height - boxHeight - padding - 20; 
+    const boxHeight = (fontSize * 2.5) + 18;
+    const boxY = c.height - boxHeight - padding - 12; 
     
     ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
     ctx.beginPath();
-    ctx.roundRect(padding, boxY, maxTextWidth + 30, boxHeight, 10);
+    if (ctx.roundRect) {
+        ctx.roundRect(padding, boxY, Math.min(maxTextWidth + 28, c.width - (padding * 2)), boxHeight, 10);
+    } else {
+        ctx.rect(padding, boxY, Math.min(maxTextWidth + 28, c.width - (padding * 2)), boxHeight);
+    }
     ctx.fill();
     
     ctx.fillStyle = "#ffffff";
-    ctx.fillText(line1, padding + 15, boxY + fontSize + 6);
+    ctx.fillText(line1, padding + 14, boxY + fontSize + 6);
     ctx.fillStyle = "#10b981";
-    ctx.fillText(line2, padding + 15, boxY + (fontSize * 2) + 12);
+    ctx.fillText(line2, padding + 14, boxY + (fontSize * 2) + 12);
     
     compressedBase64 = c.toDataURL('image/jpeg', 0.65);
+    const approxKb = Math.round((compressedBase64.length * 3) / 4 / 1024);
     
     document.getElementById('previewContainer').classList.remove('hidden');
     document.getElementById('imagePreview').src = compressedBase64;
-    document.getElementById('sizeInfo').innerText = `Kamera Direct (Watermark Aktif)`;
+    document.getElementById('sizeInfo').innerText = `Kamera Direct • Watermark Aktif (~${approxKb} KB)`;
     
     closeCameraModal();
 }
@@ -148,7 +254,7 @@ function closeCameraModal() {
 async function loadDynamicForm() {
     const container = document.getElementById('dynamicFormContainer');
     
-    // 1. Cek apakah ada cache konfigurasi tersimpan di browser agar langsung tampil instan
+    // 1. Cek cache konfigurasi tersimpan di browser agar langsung tampil instan
     const cachedConfig = localStorage.getItem('simpel_form_config_cache');
     if (cachedConfig) {
         try {
@@ -160,7 +266,7 @@ async function loadDynamicForm() {
     }
 
     try {
-        // 2. Cek status form terlebih dahulu secara paralel atau cepat
+        // 2. Cek status form terlebih dahulu
         const statusRes = await fetch(GAS_URL + "?action=getFormStatus")
             .then(res => res.json())
             .catch(() => ({ status: 'BUKA' }));
@@ -173,7 +279,7 @@ async function loadDynamicForm() {
                         <div class="w-16 h-16 bg-amber-500/10 text-amber-600 rounded-3xl mx-auto flex items-center justify-center text-3xl border border-amber-200">🔒</div>
                         <h2 class="text-lg font-extrabold text-slate-800">Presensi Telah Ditutup</h2>
                         <p class="text-xs text-slate-600 bg-amber-50/80 border border-amber-200/70 p-4 rounded-2xl leading-relaxed">
-                            ${statusRes.message || 'Mohon maaf, pengisian form presensi perkuliahan saat ini sedang ditutup oleh admin.'}
+                            ${escapeHtml(statusRes.message || 'Mohon maaf, pengisian form presensi perkuliahan saat ini sedang ditutup oleh admin.')}
                         </p>
                     </div>`;
             }
@@ -185,7 +291,6 @@ async function loadDynamicForm() {
         
         if (configRes && configRes.status === 'success' && configRes.fields && configRes.fields.length > 0) {
             loadedFieldsConfig = configRes.fields;
-            // Simpan ke localStorage untuk kunjungan berikutnya agar instan
             localStorage.setItem('simpel_form_config_cache', JSON.stringify(loadedFieldsConfig));
             renderFormFields(loadedFieldsConfig);
         } else if (!cachedConfig && container) {
@@ -207,6 +312,8 @@ function renderFormFields(fields) {
 
     container.innerHTML = filteredFields.map(f => {
         let fieldHtml = '';
+        const safeName = escapeHtml(f.name);
+        const safeLabel = escapeHtml(f.label);
         const reqTag = f.required ? '<span class="text-rose-500">*</span>' : '';
         const reqAttr = f.required ? 'required' : '';
 
@@ -221,35 +328,39 @@ function renderFormFields(fields) {
 
             fieldHtml = `
                 <div class="grid grid-cols-5 gap-1.5 sm:gap-2 text-center pt-1">
-                    ${f.options.map(opt => {
+                    ${(f.options || []).map(opt => {
                         const emo = emojiMap[opt] || { icon: "😃", label: opt };
+                        const safeOpt = escapeHtml(opt);
                         return `
                             <label class="cursor-pointer">
-                                <input type="radio" name="${f.name}" value="${opt}" ${reqAttr} class="peer sr-only">
+                                <input type="radio" name="${safeName}" value="${safeOpt}" ${reqAttr} class="peer sr-only">
                                 <div class="p-2 sm:p-2.5 rounded-2xl border border-slate-200 peer-checked:border-indigo-600 peer-checked:bg-indigo-50/80 hover:bg-slate-50 flex flex-col items-center justify-center transition-all shadow-sm">
                                     <span class="text-2xl sm:text-3xl block mb-1">${emo.icon}</span>
-                                    <span class="text-[9px] sm:text-[10px] font-extrabold text-slate-600 block truncate w-full">${emo.label}</span>
+                                    <span class="text-[9px] sm:text-[10px] font-extrabold text-slate-600 block truncate w-full">${escapeHtml(emo.label)}</span>
                                 </div>
                             </label>`;
                     }).join('')}
                 </div>`;
         } else if (f.type === 'select') {
             fieldHtml = `
-                <input type="hidden" id="${f.name}" name="${f.name}" ${reqAttr} value="">
-                <button type="button" onclick="openSelectModal('${f.name}', '${f.label}', ${JSON.stringify(f.options).replace(/"/g, '&quot;')})"
-                    id="trigger_${f.name}"
+                <input type="hidden" id="${safeName}" name="${safeName}" ${reqAttr} value="">
+                <button type="button" onclick="openSelectModal('${safeName}')"
+                    id="trigger_${safeName}"
                     class="w-full text-left px-4 py-3.5 rounded-2xl border border-slate-200 bg-slate-50/70 hover:bg-slate-50 text-xs sm:text-sm text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 flex justify-between items-center transition-all">
-                    <span id="label_display_${f.name}">-- Pilih ${f.label} --</span>
+                    <span id="label_display_${safeName}">-- Pilih ${safeLabel} --</span>
                     <span class="text-indigo-600 font-bold text-xs">▼</span>
                 </button>`;
         } else if (f.type === 'radio') {
             fieldHtml = `
                 <div class="flex flex-wrap gap-2.5 pt-1">
-                    ${f.options.map(opt => `
+                    ${(f.options || []).map(opt => {
+                        const safeOpt = escapeHtml(opt);
+                        return `
                         <label class="flex items-center text-xs cursor-pointer bg-slate-50 border border-slate-200 px-3.5 py-2.5 rounded-xl hover:bg-slate-100 transition-all">
-                            <input type="radio" name="${f.name}" value="${opt}" ${reqAttr} class="w-4 h-4 text-indigo-600 focus:ring-indigo-500" />
-                            <span class="ml-2 text-slate-700 font-bold">${opt}</span>
-                        </label>`).join('')}
+                            <input type="radio" name="${safeName}" value="${safeOpt}" ${reqAttr} class="w-4 h-4 text-indigo-600 focus:ring-indigo-500" />
+                            <span class="ml-2 text-slate-700 font-bold">${safeOpt}</span>
+                        </label>`;
+                    }).join('')}
                 </div>`;
         } else {
             const isNamaField = f.name === 'nama';
@@ -257,35 +368,43 @@ function renderFormFields(fields) {
             const onInputAttr = isNamaField ? 'oninput="this.value = this.value.toUpperCase()"' : '';
 
             fieldHtml = `
-                <input type="text" id="${f.name}" name="${f.name}" ${reqAttr} ${onInputAttr} placeholder="${f.label}"
+                <input type="text" id="${safeName}" name="${safeName}" ${reqAttr} ${onInputAttr} placeholder="${safeLabel}"
                     class="w-full px-4 py-3.5 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-600 text-xs sm:text-sm bg-slate-50/70 hover:bg-slate-50 transition-all font-medium text-slate-800 placeholder:text-slate-400 ${uppercaseClass}" />`;
         }
 
         return `
             <div>
-                <label class="block text-[11px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-600 mb-1.5">${f.label} ${reqTag}</label>
+                <label class="block text-[11px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-600 mb-1.5">${safeLabel} ${reqTag}</label>
                 ${fieldHtml}
             </div>`;
     }).join('');
 }
 
 // --- DROPDOWN MODAL CONTROL ---
-function openSelectModal(fieldName, fieldLabel, options) {
-    document.getElementById('selectModalTitle').innerText = 'Pilih ' + fieldLabel;
+function openSelectModal(fieldName) {
+    const field = loadedFieldsConfig.find(item => item.name === fieldName);
+    if (!field) return;
+
+    document.getElementById('selectModalTitle').innerText = 'Pilih ' + field.label;
     const optionsContainer = document.getElementById('selectModalOptions');
-    
-    optionsContainer.innerHTML = options.map(opt => `
-        <button type="button" onclick="selectOptionValue('${fieldName}', '${opt.replace(/'/g, "\\'")}')"
-            class="w-full text-left p-3.5 text-xs sm:text-sm font-bold text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-2xl transition-all">
-            ${opt}
-        </button>
-    `).join('');
+    optionsContainer.innerHTML = '';
+
+    (field.options || []).forEach(opt => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'w-full text-left p-3.5 text-xs sm:text-sm font-bold text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-2xl transition-all';
+        btn.textContent = opt;
+        btn.onclick = () => selectOptionValue(fieldName, opt);
+        optionsContainer.appendChild(btn);
+    });
 
     document.getElementById('customSelectModal').classList.remove('hidden');
 }
 
 function selectOptionValue(fieldName, val) {
-    document.getElementById(fieldName).value = val;
+    const hiddenEl = document.getElementById(fieldName);
+    if (hiddenEl) hiddenEl.value = val;
+
     const labelDisplay = document.getElementById('label_display_' + fieldName);
     if (labelDisplay) {
         labelDisplay.innerText = val;
@@ -321,9 +440,9 @@ function handleFileSelect(e) {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = function(event) {
+    reader.onload = function (event) {
         const img = new Image();
-        img.onload = function() {
+        img.onload = function () {
             const canvas = document.createElement('canvas');
             const maxDimension = 800;
             let width = img.width, height = img.height;
@@ -339,9 +458,11 @@ function handleFileSelect(e) {
             ctx.drawImage(img, 0, 0, width, height);
 
             compressedBase64 = canvas.toDataURL('image/jpeg', 0.65);
+            const approxKb = Math.round((compressedBase64.length * 3) / 4 / 1024);
+
             document.getElementById('previewContainer').classList.remove('hidden');
             document.getElementById('imagePreview').src = compressedBase64;
-            document.getElementById('sizeInfo').innerText = `Berkas galeri terkompresi`;
+            document.getElementById('sizeInfo').innerText = `Berkas galeri terkompresi (~${approxKb} KB)`;
         };
         img.src = event.target.result;
     };
@@ -350,6 +471,8 @@ function handleFileSelect(e) {
 
 // --- MODAL POPUP RESULTS ---
 function showPopupModal(isSuccess, title, message, targetEmail) {
+    playPresensiSfx(isSuccess ? 'success' : 'error');
+
     const iconContainer = document.getElementById('modalIconContainer');
     const icon = document.getElementById('modalIcon');
     const closeBtn = document.getElementById('modalCloseBtn');
@@ -360,7 +483,7 @@ function showPopupModal(isSuccess, title, message, targetEmail) {
         icon.innerText = "✓";
         closeBtn.className = "w-full mt-6 py-3.5 px-4 rounded-2xl font-extrabold text-xs sm:text-sm text-white bg-emerald-600 hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/30 focus:outline-none";
 
-        let content = `<p class="font-bold text-slate-700 text-center text-sm">${message}</p>`;
+        let content = `<p class="font-bold text-slate-700 text-center text-sm">${escapeHtml(message)}</p>`;
         if (targetEmail) {
             content += `
                 <div class="mt-3.5 p-3.5 bg-indigo-50/80 border border-indigo-100 rounded-2xl text-left flex items-start space-x-3">
@@ -368,7 +491,7 @@ function showPopupModal(isSuccess, title, message, targetEmail) {
                     <div>
                         <p class="font-extrabold text-indigo-950 text-xs">Konfirmasi Email Terkirim!</p>
                         <p class="text-[11px] text-indigo-800 leading-normal mt-0.5">
-                            Bukti sah presensi telah dikirimkan ke alamat email Anda: <br><strong class="underline">${targetEmail}</strong>.
+                            Bukti sah presensi telah dikirimkan ke alamat email Anda: <br><strong class="underline">${escapeHtml(targetEmail)}</strong>.
                         </p>
                     </div>
                 </div>`;
@@ -379,7 +502,7 @@ function showPopupModal(isSuccess, title, message, targetEmail) {
         iconContainer.className = "w-16 h-16 rounded-2xl mx-auto flex items-center justify-center text-3xl mb-3.5 bg-rose-100 text-rose-600 border border-rose-200 shadow-inner";
         icon.innerText = "✕";
         closeBtn.className = "w-full mt-6 py-3.5 px-4 rounded-2xl font-extrabold text-xs sm:text-sm text-white bg-rose-600 hover:bg-rose-700 transition-all shadow-lg shadow-rose-600/30 focus:outline-none";
-        msgElem.innerHTML = `<p class="text-slate-600 text-center font-medium">${message}</p>`;
+        msgElem.innerHTML = `<p class="text-slate-600 text-center font-medium">${escapeHtml(message)}</p>`;
     }
 
     document.getElementById('modalTitle').innerText = title;
@@ -394,7 +517,6 @@ function closePopupModal() {
 async function handleFormSubmit(e) {
     e.preventDefault();
 
-    // 1. PENCEGAH SPAM CLICK: Jika masih proses, abaikan klik tambahan
     if (isAbsenSubmitting) return; 
     
     const emailInputVal = document.getElementById('emailInput') ? document.getElementById('emailInput').value.trim() : '';
@@ -405,8 +527,8 @@ async function handleFormSubmit(e) {
         showPopupModal(false, "Email Tidak Valid", "Pastikan penulisan format email sudah benar.");
         return;
     }
-    if (!npmVal || !/^\d{10}$/.test(npmVal)) {
-        showPopupModal(false, "NPM Tidak Valid", "NPM harus terdiri dari tepat 10 digit angka.");
+    if (!npmVal || !/^\d{8,15}$/.test(npmVal)) {
+        showPopupModal(false, "NPM Tidak Valid", "NPM harus terdiri dari 8 hingga 15 digit angka.");
         return;
     }
     if (!namaVal) {
@@ -418,7 +540,6 @@ async function handleFormSubmit(e) {
         return;
     }
 
-    // Kunci tombol agar tidak bisa diklik dua kali
     isAbsenSubmitting = true;
 
     const btn = document.getElementById('btnSubmit');
@@ -432,7 +553,7 @@ async function handleFormSubmit(e) {
     const lngVal = document.getElementById('geoLng') ? document.getElementById('geoLng').value : '';
 
     const payload = {
-        apiKey: "SIMPEL-V2-SECRET-KEY-2026", // TAMBAHKAN INI (Kunci Rahasia Bebas)
+        apiKey: API_KEY,
         userEmail: emailInputVal,
         email: emailInputVal,
         npm: npmVal,
@@ -456,48 +577,41 @@ async function handleFormSubmit(e) {
         });
     }
 
-    // 2. TIMEOUT SAFETY 20 DETIK
+    // TIMEOUT SAFETY 20 DETIK
     let isTimeout = false;
     let timer = setTimeout(() => {
         isTimeout = true;
-        isAbsenSubmitting = false; // Buka kunci agar mahasiswa bisa mencoba lagi
+        isAbsenSubmitting = false;
         
         if (btn) btn.disabled = false;
         if (btnText) btnText.textContent = "Kirim Presensi Kehadiran";
         if (btnSpinner) btnSpinner.classList.add('hidden');
 
-        // Gunakan fungsi popup modal bawaan Anda
         showPopupModal(false, "Antrean Penuh / Koneksi Lambat", "Server sedang memproses antrean absensi mahasiswa lain. Jangan tutup halaman ini, silakan tekan tombol kirim kembali.");
     }, 20000);
 
     try {
-        // 1. Kirim data TANPA 'mode: no-cors' agar respons server bisa dibaca
         const response = await fetch(GAS_URL, {
             method: 'POST',
             headers: {
-                // text/plain wajib digunakan untuk menghindari Preflight/CORS error di GAS
                 'Content-Type': 'text/plain;charset=utf-8'
             },
             body: JSON.stringify(payload)
         });
 
-        // 2. JIKA SUDAH TIMEOUT, ABAIKAN PROSES BERIKUTNYA
         if (isTimeout) return; 
-        clearTimeout(timer); // Hapus timer jika sukses sebelum 20 detik
+        clearTimeout(timer);
         
-        isAbsenSubmitting = false; // Buka kunci kembali
+        isAbsenSubmitting = false;
         if (btn) btn.disabled = false;
         if (btnText) btnText.textContent = "Kirim Presensi Kehadiran";
         if (btnSpinner) btnSpinner.classList.add('hidden');
 
-        // 3. PARSE (BACA) BALASAN ASLI DARI SERVER
         const result = await response.json();
 
-        // 4. CEK APAKAH BENAR-BENAR SUKSES DISIMPAN KE SPREADSHEET
         if (result.status === 'success') {
             showPopupModal(true, "Presensi Berhasil!", result.message || "Data presensi Anda berhasil disimpan.", emailInputVal);
             
-            // Bersihkan form hanya jika benar-benar sukses
             try {
                 const formObj = document.getElementById('attendanceForm');
                 if (formObj && typeof formObj.reset === 'function') {
@@ -508,19 +622,26 @@ async function handleFormSubmit(e) {
             }
             
             resetDynamicSelects();
+
+            // Reset badge email dan input file galeri
+            const badgeDisplay = document.getElementById('badgeEmailDisplay');
+            if (badgeDisplay) badgeDisplay.textContent = 'Masukkan Email';
+
+            const fileGaleriInput = document.getElementById('fotoFileGaleri');
+            if (fileGaleriInput) fileGaleriInput.value = '';
+
             const previewContainer = document.getElementById('previewContainer');
             if (previewContainer) previewContainer.classList.add('hidden');
             compressedBase64 = null;
 
         } else {
-            // Jika backend menolak (contoh: error validasi atau antrean LockService penuh)
             showPopupModal(false, "Gagal Disimpan", result.message || "Ditolak oleh server.");
         }
 
     } catch (err) {
         if (isTimeout) return;
         clearTimeout(timer);
-        isAbsenSubmitting = false; // Buka kunci
+        isAbsenSubmitting = false;
 
         console.error(err);
         if (btn) btn.disabled = false;
