@@ -1,29 +1,430 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mengarahkan ke Kuis by DigitalivePandu...</title>
-    <script src="config.js"></script>
-    <script>
-        const targetKuisUrl = (window.SIMPEL_CONFIG && typeof window.SIMPEL_CONFIG.getPageUrl === 'function')
-            ? window.SIMPEL_CONFIG.getPageUrl('kuis')
-            : "https://script.google.com/macros/s/AKfycbz2Cb6nwViSsfXEB3n82ow91ro5cR5FO-VMibBfJHcpbPFWHXj9t1bUATbqA9wi6pzK8A/exec?page=kuis";
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kuis Interaktif - SIMPEL v2.0</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+      --card-bg: #ffffff;
+      --card-border: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --accent-primary: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-soft: #eff6ff;
+      --option-bg: #f8fafc;
+      --option-border: #cbd5e1;
+      --option-hover: #eff6ff;
+    }
 
-        window.location.replace(targetKuisUrl);
-    </script>
+    [data-theme="Cyberpunk"] {
+      --bg-gradient: linear-gradient(135deg, #090d16 0%, #170f2e 50%, #090d16 100%);
+      --card-bg: #111827;
+      --card-border: #312e81;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-primary: #ec4899;
+      --accent-hover: #db2777;
+      --accent-soft: #2a1432;
+      --option-bg: #1e1b4b;
+      --option-border: #4338ca;
+      --option-hover: #311042;
+    }
+
+    [data-theme="Forest"] {
+      --bg-gradient: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+      --card-bg: #ffffff;
+      --card-border: #a7f3d0;
+      --text-main: #064e3b;
+      --text-muted: #047857;
+      --accent-primary: #059669;
+      --accent-hover: #047857;
+      --accent-soft: #d1fae5;
+      --option-bg: #f0fdf4;
+      --option-border: #6ee7b7;
+      --option-hover: #d1fae5;
+    }
+
+    [data-theme="Royal"] {
+      --bg-gradient: linear-gradient(135deg, #1e1b4b 0%, #312e81 55%, #1e1b4b 100%);
+      --card-bg: #1e293b;
+      --card-border: #eab308;
+      --text-main: #f8fafc;
+      --text-muted: #cbd5e1;
+      --accent-primary: #eab308;
+      --accent-hover: #ca8a04;
+      --accent-soft: #2e2a1e;
+      --option-bg: #0f172a;
+      --option-border: #475569;
+      --option-hover: #292524;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      min-height: 100vh;
+      transition: background 0.35s ease, color 0.35s ease;
+      user-select: none;
+    }
+
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .theme-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      transition: all 0.25s ease;
+    }
+
+    .theme-muted {
+      color: var(--text-muted);
+    }
+
+    .theme-btn-primary {
+      background-color: var(--accent-primary);
+      color: #ffffff;
+      transition: all 0.2s ease;
+    }
+
+    [data-theme="Royal"] .theme-btn-primary {
+      color: #0f172a;
+    }
+
+    .theme-btn-primary:hover:not(:disabled) {
+      background-color: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    .option-card {
+      background-color: var(--option-bg);
+      border: 2px solid var(--option-border);
+      color: var(--text-main);
+      transition: all 0.2s ease;
+    }
+
+    .option-card:hover:not(:disabled) {
+      background-color: var(--option-hover);
+      border-color: var(--accent-primary);
+      transform: translateY(-2px);
+    }
+
+    .option-selected-neutral {
+      background-color: var(--accent-primary) !important;
+      border-color: var(--accent-primary) !important;
+      color: #ffffff !important;
+    }
+
+    [data-theme="Royal"] .option-selected-neutral {
+      color: #0f172a !important;
+    }
+
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-enter {
+      animation: fadeSlideUp 0.35s ease forwards;
+    }
+  </style>
 </head>
-<body style="font-family: Arial, sans-serif; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f1f5f9; color: #334155;">
-    
-    <h3 style="margin-bottom: 10px;">Membuka Portal Kuis SIMPEL v2.0...</h3>
-    <p style="font-size: 14px; color: #64748b;">Harap tunggu sebentar yaa...</p>
-    
-    <p style="font-size: 12px; margin-top: 20px;">
-        Jika tidak dialihkan otomatis, silakan <a id="manualKuisLink" href="#" style="color: #2563eb; text-decoration: none; font-weight: bold;">klik di sini</a>.
-    </p>
+<body data-theme="Classic" class="flex flex-col">
 
-    <script>
-        document.getElementById('manualKuisLink').href = targetKuisUrl;
-    </script>
+  <!-- Audio Player untuk Musik Latar Kustom -->
+  <audio id="customBgmAudio" loop preload="none"></audio>
+
+  <!-- NAVBAR ATAS -->
+  <header class="w-full border-b border-slate-500/20 backdrop-blur-md sticky top-0 z-30">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white shadow-sm" style="background-color: var(--accent-primary);">
+          <i class="bi bi-lightning-charge-fill text-lg"></i>
+        </div>
+        <div>
+          <div class="font-extrabold text-sm sm:text-base tracking-tight leading-tight">SIMPEL <span class="opacity-75">QUIZ</span></div>
+          <div class="text-[11px] theme-muted leading-none">Portal Evaluasi Interaktif</div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <!-- Indikator Anti-Cheat saat Ujian Aktif -->
+        <div id="antiCheatBadge" class="hidden items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-500/15 text-amber-600 border border-amber-500/30">
+          <i class="bi bi-shield-check"></i>
+          <span>Pelanggaran: <strong id="cheatCounterLabel">0</strong>/10</span>
+        </div>
+
+        <!-- Tombol Kontrol SFX -->
+        <button type="button" id="btnToggleSfx" title="Suara Efek"
+          class="w-9 h-9 rounded-xl theme-card flex items-center justify-center hover:opacity-80 cursor-pointer">
+          <i id="iconSfx" class="bi bi-volume-up-fill text-base"></i>
+        </button>
+
+        <!-- Tombol Kontrol Musik Latar -->
+        <button type="button" id="btnToggleBgm" title="Musik Latar"
+          class="w-9 h-9 rounded-xl theme-card flex items-center justify-center hover:opacity-80 cursor-pointer">
+          <i id="iconBgm" class="bi bi-music-note-beamed text-base opacity-50"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- KONTEN UTAMA -->
+  <main class="flex-1 flex items-center justify-center p-4">
+
+    <!-- ==========================================
+         LAYAR 1: LOBBY & VERIFIKASI IDENTITAS PESERTA
+         ========================================== -->
+    <section id="screenLogin" class="w-full max-w-md theme-card rounded-2xl shadow-xl p-6 sm:p-8 animate-enter">
+      <div class="text-center mb-6">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mb-3"
+          style="background-color: var(--accent-soft); color: var(--accent-primary);">
+          <i class="bi bi-patch-check-fill"></i> SESI EVALUASI DIGITAL
+        </span>
+        <h1 class="text-2xl font-extrabold tracking-tight">Masuk Ruang Kuis</h1>
+        <p class="text-xs sm:text-sm theme-muted mt-1">Masukkan Token Kuis dari pengajar beserta identitas mahasiswa Anda.</p>
+      </div>
+
+      <form id="formStartKuis" class="space-y-4">
+        <div>
+          <label for="inputToken" class="block text-xs font-bold uppercase tracking-wider theme-muted mb-1">Token Kuis</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center theme-muted">
+              <i class="bi bi-key-fill"></i>
+            </span>
+            <input type="text" id="inputToken" required autocomplete="off" placeholder="Contoh: 4829104"
+              class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-mono-code font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+        </div>
+
+        <div>
+          <label for="inputNpm" class="block text-xs font-bold uppercase tracking-wider theme-muted mb-1">NPM (Nomor Pokok Mahasiswa)</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center theme-muted">
+              <i class="bi bi-person-badge-fill"></i>
+            </span>
+            <input type="text" id="inputNpm" required pattern="\d{8,15}" placeholder="Masukkan 8-15 digit NPM"
+              class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <p id="npmLookupHint" class="text-[11px] text-emerald-600 font-semibold mt-1 hidden"></p>
+        </div>
+
+        <div>
+          <label for="inputNama" class="block text-xs font-bold uppercase tracking-wider theme-muted mb-1">Nama Lengkap</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center theme-muted">
+              <i class="bi bi-person-fill"></i>
+            </span>
+            <input type="text" id="inputNama" required placeholder="Nama sesuai daftar hadir"
+              class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+        </div>
+
+        <div class="p-3 rounded-xl text-xs space-y-1 border border-slate-400/25" style="background-color: var(--accent-soft);">
+          <div class="font-bold flex items-center gap-1.5" style="color: var(--accent-primary);">
+            <i class="bi bi-shield-lock-fill"></i> Ketentuan Pengerjaan:
+          </div>
+          <ul class="list-disc pl-4 theme-muted space-y-0.5">
+            <li>Setiap NPM hanya memiliki <strong>1 kali kesempatan</strong> pengerjaan.</li>
+            <li>Dilarang berpindah tab, split-screen, atau membuka DevTools saat ujian berlangsung.</li>
+            <li>Progres jawaban dan sisa waktu diaudit langsung oleh server ujian.</li>
+          </ul>
+        </div>
+
+        <button type="submit" id="btnMulaiKuis"
+          class="w-full py-3 rounded-xl font-bold text-sm sm:text-base shadow-lg theme-btn-primary flex items-center justify-center gap-2 cursor-pointer">
+          <i class="bi bi-play-fill text-lg"></i> Masuk & Mulai Kuis
+        </button>
+      </form>
+    </section>
+
+    <!-- ==========================================
+         LAYAR 1B: RUANG TUNGGU HOST LIVE
+         ========================================== -->
+    <section id="screenWaitingRoom" class="hidden w-full max-w-md theme-card rounded-2xl shadow-xl p-6 sm:p-8 text-center animate-enter">
+      <div class="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center text-3xl mb-4 animate-pulse"
+        style="background-color: var(--accent-soft); color: var(--accent-primary);">
+        <i class="bi bi-hourglass-split"></i>
+      </div>
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mb-2 bg-amber-500/15 text-amber-600">
+        <i class="bi bi-broadcast"></i> MODE HOST LIVE
+      </span>
+      <h2 id="waitingQuizTitle" class="text-xl font-extrabold tracking-tight">Menunggu Instruksi Pengajar</h2>
+      <p class="text-xs sm:text-sm theme-muted mt-2">
+        Halo <strong id="waitingParticipantName">-</strong>, kuis akan dimulai secara serentak begitu pengajar menekan tombol <strong>Mulai Ujian</strong> di Dashboard.
+      </p>
+
+      <div class="my-5 p-3.5 rounded-xl border border-slate-400/25 text-xs flex items-center justify-center gap-2" style="background-color: var(--accent-soft);">
+        <span class="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full" style="color: var(--accent-primary);"></span>
+        <span class="font-semibold">Memeriksa status sesi otomatis setiap 5 detik...</span>
+      </div>
+
+      <button type="button" id="btnCancelWaiting" class="text-xs font-semibold theme-muted hover:underline cursor-pointer">
+        Kembali ke Halaman Login
+      </button>
+    </section>
+
+    <!-- ==========================================
+         LAYAR 2: ARENA PENGERJAAN SOAL
+         ========================================== -->
+    <section id="screenQuiz" class="hidden w-full max-w-3xl space-y-4 animate-enter">
+      <!-- Header Info Kuis & Timer -->
+      <div class="theme-card rounded-2xl p-4 sm:p-5 shadow-md">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div>
+            <h2 id="quizTitleDisplay" class="font-extrabold text-base sm:text-lg leading-snug">Judul Kuis</h2>
+            <p class="text-xs theme-muted">Peserta: <span id="participantInfoDisplay" class="font-semibold"></span></p>
+          </div>
+          <div class="flex items-center gap-2">
+            <!-- Streak Badge -->
+            <div id="streakBadge" class="hidden items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-extrabold bg-orange-500/15 text-orange-500 border border-orange-500/30">
+              <i class="bi bi-fire"></i> <span id="streakCountText">0</span>x Jawab
+            </div>
+            <!-- Timer Badge -->
+            <div id="timerBox" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-mono-code font-bold text-sm border"
+              style="background-color: var(--accent-soft); border-color: var(--accent-primary); color: var(--accent-primary);">
+              <i class="bi bi-stopwatch-fill"></i>
+              <span id="timerText">00:00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="flex items-center justify-between text-xs font-semibold theme-muted mb-1.5">
+          <span>Pertanyaan <strong id="currentQuestionNum" style="color: var(--text-main);">1</strong> dari <strong id="totalQuestionNum">0</strong></span>
+          <span id="timerModeBadge" class="uppercase tracking-wider text-[11px]">Mode: Per-Soal</span>
+        </div>
+        <div class="w-full h-2.5 rounded-full bg-slate-400/20 overflow-hidden">
+          <div id="quizProgressBar" class="h-full rounded-full transition-all duration-300" style="width: 0%; background-color: var(--accent-primary);"></div>
+        </div>
+      </div>
+
+      <!-- Kartu Pertanyaan & Opsi -->
+      <div class="theme-card rounded-2xl p-5 sm:p-7 shadow-lg">
+        <div class="flex items-center justify-between mb-3">
+          <span class="px-2.5 py-1 rounded-lg text-xs font-bold" style="background-color: var(--accent-soft); color: var(--accent-primary);">
+            Soal #<span id="cardQuestionIndex">1</span>
+          </span>
+          <span class="text-xs font-bold theme-muted">
+            Bobot: <strong id="cardQuestionPoint" style="color: var(--text-main);">10</strong> Poin
+          </span>
+        </div>
+
+        <!-- Teks Pertanyaan -->
+        <div id="questionTextContainer" class="text-base sm:text-lg font-bold leading-relaxed mb-4"></div>
+
+        <!-- Gambar Pertanyaan (Jika Ada) -->
+        <div id="questionImageWrapper" class="hidden mb-5">
+          <img id="questionImageEl" src="" alt="Ilustrasi Soal"
+            class="max-h-64 rounded-xl border border-slate-400/30 mx-auto object-contain cursor-zoom-in shadow-sm">
+          <p class="text-center text-[11px] theme-muted mt-1"><i class="bi bi-zoom-in"></i> Klik gambar untuk memperbesar</p>
+        </div>
+
+        <!-- Grid Pilihan Jawaban -->
+        <div id="optionsContainer" class="grid grid-cols-1 gap-3 mt-4"></div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         LAYAR 3: HASIL, BUKTI & PEMBAHASAN AKHIR
+         ========================================== -->
+    <section id="screenResult" class="hidden w-full max-w-lg animate-enter space-y-4">
+
+      <!-- AREA KARTU BUKTI YANG AKAN DI-SCREENSHOT -->
+      <div id="resultCaptureArea" class="theme-card rounded-2xl shadow-xl p-6 sm:p-8 text-center">
+        <div id="resultIconWrapper" class="w-20 h-20 rounded-full mx-auto flex items-center justify-center text-4xl mb-4 shadow-md"
+          style="background-color: var(--accent-soft); color: var(--accent-primary);">
+          <i class="bi bi-trophy-fill"></i>
+        </div>
+
+        <h2 id="resultHeading" class="text-2xl font-extrabold tracking-tight">Kuis Selesai!</h2>
+        <p id="resultSubheading" class="text-xs sm:text-sm theme-muted mt-1">Jawaban Anda telah berhasil direkam ke server akademik.</p>
+
+        <div id="scoreSummaryBox" class="my-6 p-5 rounded-2xl border border-slate-400/25" style="background-color: var(--accent-soft);">
+          <div class="text-xs font-bold uppercase tracking-widest theme-muted">Total Skor Akhir</div>
+          <div id="finalScoreDisplay" class="text-5xl font-extrabold font-mono-code my-1" style="color: var(--accent-primary);">0</div>
+          <div id="finalIntegrityBadge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mt-2 bg-emerald-100 text-emerald-700">
+            <i class="bi bi-shield-fill-check"></i> Status: Aman
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 text-left text-xs">
+          <div class="p-3 rounded-xl border border-slate-400/25">
+            <div class="theme-muted">Nama Peserta</div>
+            <div id="resParticipantName" class="font-bold text-sm truncate mt-0.5">-</div>
+          </div>
+          <div class="p-3 rounded-xl border border-slate-400/25">
+            <div class="theme-muted">NPM</div>
+            <div id="resParticipantNpm" class="font-bold text-sm font-mono-code mt-0.5">-</div>
+          </div>
+          <div class="p-3 rounded-xl border border-slate-400/25">
+            <div class="theme-muted">Soal Terjawab</div>
+            <div id="resAnsweredCount" class="font-bold text-sm mt-0.5">0 / 0</div>
+          </div>
+          <div class="p-3 rounded-xl border border-slate-400/25">
+            <div class="theme-muted">Judul Evaluasi</div>
+            <div id="resQuizTitleLabel" class="font-bold text-sm truncate mt-0.5">-</div>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-slate-400/20 flex items-center justify-between text-[11px] theme-muted font-mono-code">
+          <span>Token: <strong id="resTokenLabel">-</strong></span>
+          <span id="resTimestampLabel">-</span>
+        </div>
+      </div>
+
+      <!-- PANEL AKSI BUKTI UJIAN: DOWNLOAD SCREENSHOT & KIRIM EMAIL BREVO -->
+      <div class="theme-card rounded-2xl shadow-lg p-4 sm:p-5 space-y-3">
+        <button type="button" id="btnDownloadScreenshot"
+          class="w-full py-2.5 px-4 rounded-xl font-bold text-sm theme-btn-primary flex items-center justify-center gap-2 shadow cursor-pointer">
+          <i class="bi bi-camera-fill"></i> Download Screenshot Bukti Ujian (PNG)
+        </button>
+
+        <div class="pt-2 border-t border-slate-400/20">
+          <label for="inputResultEmail" class="block text-xs font-bold theme-muted mb-1.5">
+            Kirim Salinan Hasil Ujian ke Email Anda:
+          </label>
+          <div class="flex gap-2">
+            <input type="email" id="inputResultEmail" placeholder="nama@mahasiswa.ac.id"
+              class="flex-1 px-3.5 py-2 rounded-xl border border-slate-300 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <button type="button" id="btnSendResultEmail"
+              class="px-4 py-2 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 transition cursor-pointer">
+              <i class="bi bi-send-fill"></i> Kirim
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL REKAP & KUNCI JAWABAN (HANYA MUNCUL JIKA PENGATURAN TAMPIL KUNCI AKTIF) -->
+      <div id="reviewAnswerSection" class="hidden theme-card rounded-2xl shadow-lg p-5 space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-400/20 pb-2.5">
+          <h3 class="font-extrabold text-sm flex items-center gap-2">
+            <i class="bi bi-journal-check" style="color: var(--accent-primary);"></i> Rekap & Kunci Jawaban
+          </h3>
+          <span class="text-[11px] theme-muted font-semibold">Evaluasi Mandiri</span>
+        </div>
+        <div id="reviewAnswerList" class="space-y-2.5 max-h-80 overflow-y-auto pr-1 text-xs"></div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <footer class="w-full py-3 text-center text-[11px] theme-muted">
+    SIMPEL v2.0 &bull; Digitalive Pandu &bull; Client v3.0-Hardened
+  </footer>
+
+  <script src="./quiz-core.min.js" defer></script>
 </body>
 </html>
