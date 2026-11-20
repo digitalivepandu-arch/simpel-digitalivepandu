@@ -7,7 +7,7 @@ let loadedFieldsConfig = [];
 
 // Membaca konfigurasi terpusat dari config.js
 const APP_CONFIG = window.SIMPEL_CONFIG || {};
-const GAS_URL = APP_CONFIG.GAS_URL || "https://script.google.com/macros/s/AKfycbz2Cb6nwViSsfXEB3n82ow91ro5cR5FO-VMibBfJHcpbPFWHXj9t1bUATbqA9wi6pzK8A/exec";
+const GAS_URL = APP_CONFIG.GAS_URL || "https://script.google.com/macros/s/AKfycbzETotWT7sOHPvwv4p-C0fBqfwcPjwRCnmsw0Pv7eKFUgXuScvBxHi0hYPa8wSedZuyLw/exec";
 const API_KEY = APP_CONFIG.API_KEY || "SIMPEL-V2-SECRET-KEY-2026";
 
 let isAbsenSubmitting = false; // Pengunci Spam Click
